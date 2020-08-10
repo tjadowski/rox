@@ -9,9 +9,6 @@ use Symfony\Component\Form\FormBuilderInterface;
 class FeedbackFormType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -33,6 +30,6 @@ class FeedbackFormType extends AbstractType
 
     public function getBlockPrefix()
     {
-        return null;
+        return '';
     }
 }

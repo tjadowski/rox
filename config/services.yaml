@@ -4,12 +4,18 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
+  router.request_context.host: 'www.bewelcome.org'
+  router.request_context.scheme: 'https'
   new_members_messages_per_hour: "%env(new_members_messages_per_hour)%"
   new_members_messages_per_day: "%env(new_members_messages_per_day)%"
+  new_members_requests_per_hour: "%env(new_members_requests_per_hour)%"
+  new_members_requests_per_day: "%env(new_members_requests_per_day)%"
   data_directory: "%kernel.project_dir%/data"
   group_directory: "%kernel.project_dir%/%env(group_directory)%"
+  gallery_directory: "%kernel.project_dir%/%env(gallery_directory)%"
   upload_directory: "%kernel.project_dir%/%env(upload_directory)%"
-  upload_max_size: "%env(upload_max_size)%"
+  massmail_batch_size: "%env(massmail_batch_size)%"
+  forum_notification_batch_size: "%env(forum_notification_batch_size)%"
 
 services:
   # makes classes in src/ available to be used as services
@@ -60,7 +66,7 @@ services:
   rox.legacy_kernel:
     class: App\LegacyKernel\LegacyHttpKernel
     public: true
-    arguments: ['@templating.engine.twig', '@event_dispatcher', '@controller_resolver', '@request_stack', '@argument_resolver', '@service_container']
+    arguments: ['@twig', '@event_dispatcher', '@controller_resolver', '@request_stack', '@argument_resolver', '@service_container']
 
   rox.legacy_password_encoder:
     public: true
@@ -109,13 +115,6 @@ services:
     class: App\Logger\Logger
     arguments: ['@doctrine.orm.entity_manager', '@security.helper']
 
-  rox.authentication_listener:
-    public: true
-    class: App\EventListener\AuthListener
-    arguments: ['@doctrine.orm.entity_manager']
-    tags:
-      - { name: kernel.event_listener, event: security.interactive_login, method: onAuthenticationSuccess }
-
   rox.datacollector_translator:
     public: true
     class: Symfony\Component\Translation\DataCollectorTranslator
@@ -127,16 +126,10 @@ services:
     class: App\Security\UserChecker
     autowire: true
 
-  intl.twig_extension:
-    public: true
-    class: Twig_Extensions_Extension_Intl
-    tags:
-      - { name: 'twig.extension' }
-
   rox.default.pagerfanta:
     class: Pagerfanta\View\OptionableView
     arguments:
-      - '@pagerfanta.view.twitter_bootstrap4_translated'
+      - '@pagerfanta.view.twitter_bootstrap4'
       - { proximity: 2, prev_message: '«', next_message: '»' , css_container_class: 'pagination float-right'}
     public: false
     tags: [{ name: pagerfanta.view, alias: rox_default }]
@@ -162,11 +155,22 @@ services:
 
   rox.html_purifier:
     class: App\Utilities\CustomHTMLPurifier
-    tags: [{ name: exercise.html_purifier, profile: custom }]
+    tags:
+      - name: exercise.html_purifier
+        profile: custom
+
+  rox.words_extractor:
+    class: App\Utilities\WordsExtractor
+    tags: [{ name: translation.extractor, alias: words }]
 
 #  rox.activator:
 #    class: App\Activator\RoleActivator
 #    arguments: ["@security.helper"]
+
+  Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
+    arguments:
+      - !service { class: PDO, factory: ['@database_connection', 'getWrappedConnection'] }
+      - { lock_mode: LOCK_NONE }
 
   _defaults:
     autowire: true      # Automatically injects dependencies in your services.

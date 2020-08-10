@@ -5,7 +5,7 @@
     {% if current.Sender.Username == myself.Username %}{% set otherUser = current.Receiver %}{% else %}{% set otherUser = current.Sender %}{% endif %}
     {% if current.Subject %}{% set currentSubject = current.Subject.Subject %}{% else %}{% set currentSubject = 'message.conversation_with' | trans | format(otherUser.Username)  %} {% endif %}
     {% if current.Request %}{% set currentArrival = current.Request.Arrival %}{% set currentDeparture = current.Request.Departure %}{% endif %}
-<div id="message_thread">
+<div id="message_thread" class="mb-1">
 {% for message in thread %}
         {% set own = (myself.Username == message.Sender.Username) %}
         {# Check if the member deleted the message/request #}
@@ -19,16 +19,25 @@
                     {% endif %}
                 </div>
                 <div class="col-auto message_{% if own %}own{% else %}other{% endif %}">
-                    <small class="{% if own %}pull-right{% else %}pull-left{% endif %} text-muted m-0">
+                    <small class="{% if own %}pull-right{% endif %} text-muted m-0">
                         {%- if own -%}
                             {{ 'message.you' | trans }}
                         {%- else -%}
                             {{ macros.profilelink(message.sender.Username) }}
                         {%- endif %}
                         <span title="{{ message.created.toDateTimeString }}">{{ message.created.DiffForHumans }}</span>
+                        <a class="ml-2 pull-right" href="{{ url('message_delete', {'id': message.id, 'redirect': current.id}) }}"><i class="fa fa-trash" title="{{ 'delete'|trans }}"></i></a>
+                        {%- if not own -%}
+                            {% if message.folder == "Spam" %}
+                                <span class="ml-1">{{ 'markededspam' | trans }}</span>
+                                <a class="ml-1" href="{{ path('message_mark_nospam', { id: message.id }) }}"><i class="far fa-flag" title="{{ 'marknospam' | trans }}"></i></a>
+                            {% else %}
+                                <a class="ml-2 pull-right" href="{{ path('message_mark_spam', { id: message.id }) }}"><i class="fas fa-flag" title="{{ 'markspam' | trans }}"></i></a>
+                            {% endif %}
+                        {%- endif -%}
                     </small>
                     <p class="clearfix m-0"></p>
-                    {{ message.message | purify('custom') }}
+                    {{ message.message|purify('custom') }}
                 </div>
             </div>
             {% if message.Request %}
@@ -57,13 +66,13 @@
 
                         <div class="col-12 col-sm-6 col-md-4 mb-1">
                             <div><i class="fa fa-calendar mr-1"></i>{{ 'request.arrival' | trans }}</div>
-                            <div>{{ request.arrival|localizeddate('full', 'none', app.request.locale) }}</div>
+                            <div>{{ request.arrival|format_date('full') }}</div>
                         </div>
 
                         {% if  request.Departure -%}
                             <div class="col-12 col-sm-6 col-md-4 mb-1">
                                 <div><i class="fa fa-calendar mr-1"></i>{{ 'request.departure' | trans }}</div>
-                                <div>{{ request.departure|localizeddate('full', 'none', app.request.locale) }}</div>
+                                <div>{{ request.departure|format_date('full') }}</div>
                             </div>
                         {%- endif %}
                         {% set currentArrival = message.Request.Arrival%}

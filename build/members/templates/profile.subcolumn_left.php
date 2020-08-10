@@ -110,7 +110,8 @@
                     }
 
         // display my groups, if there are any
-        $my_groups = $member->getGroups();
+        $my_groups = $member->getGroups(5);
+        $all_groups = $member->getGroups();
         if (!empty($my_groups)){ ?>
 
         <div id="groups" class="card mb-3">
@@ -128,31 +129,34 @@
                         $group_img = ((strlen($my_groups[$i]->Picture) > 0) ? "group/thumbimg/{$my_groups[$i]->getPKValue()}" : 'images/icons/group.png');
                         $group_id = $my_groups[$i]->id;
                         $group_name = htmlspecialchars($my_groups[$i]->Name, ENT_QUOTES);
-                        $comment = strip_tags($purifier->purify($words->mInTrad($member->getGroupMembership($my_groups[$i])->Comment, $profile_language)));
+                        $comment = '';
+                        if ($member->getGroupMembership($my_groups[$i])) {
+                            $comment = strip_tags($purifier->purify($words->mInTrad($member->getGroupMembership($my_groups[$i])->Comment, $profile_language)));
+                        }
                         ?>
                         <div class="mb-3 d-flex d-column">
                             <div>
-                                <a href="group/<? echo $group_id; ?>">
+                                <a href="group/<?php echo $group_id; ?>">
                                 <img class="framed float-left mr-2" width="50" height="50" alt="Group"
-                                     src="<? echo $group_img; ?>"/>
+                                     src="<?php echo $group_img; ?>"/>
                             </a>
                             </div>
                             <div class="text-truncate">
-                                <h4 class="m-0 text-truncate"><a href="group/<? echo $group_id; ?>"><? echo $group_name; ?></a></h4>
-                                <p class="m-0 text-truncate"><? echo $comment; ?></p>
+                                <h4 class="m-0 text-truncate"><a href="group/<?php echo $group_id; ?>"><?php echo $group_name; ?></a></h4>
+                                <p class="m-0 text-truncate"><?php echo $comment; ?></p>
                             </div>  <!-- groupinfo -->
                         </div>
                         <?php
                     endfor;
-                    if (count($my_groups) > 5) :
+                    if (count($all_groups) > 5) :
                         echo '<a class="btn btn-sm btn-block btn-outline-primary" href="members/' . $member->Username . '/groups">' . $words->get('GroupsAllMyLink') . '</a>';
                     endif;
                     ?>
             </div>
         </div>
-        <? } ?>
+        <?php } ?>
 
-        <?
+        <?php
         if ($this->model->getLoggedInMember() && !$this->passedAway){ ?>
 
 
@@ -208,4 +212,4 @@
                         </dl>
                 </div>
             </div>
-        <? } ?>
+        <?php } ?>

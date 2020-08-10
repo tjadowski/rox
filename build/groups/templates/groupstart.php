@@ -1,5 +1,7 @@
-<div class="row"><?php foreach ($this->getMessages() as $message) : ?>
-<p><?= $words->get($message); ?>
+<div class="row"><?php use App\Doctrine\GroupType;
+
+    foreach ($this->getMessages() as $message) : ?>
+    <p><?= $words->get($message); ?>
     <?php endforeach; ?>
     <?php
     $group_name_html = htmlspecialchars($this->getGroupTitle(), ENT_QUOTES);
@@ -10,30 +12,39 @@
 
     <div class="col-12 col-md-8">
 
-        <div class="media">
-            <?= ((strlen($this->group->Picture) > 0) ? "<img class=\"float-left framed mr-2 mb-2\" src='group/realimg/{$this->group->getPKValue()}' width=\"100px\" alt='Image for the group {$group_name_html}' />" : ''); ?>
-            <div class="media-body">
-                <h4><?php echo $words->get('GroupDescription'); ?></h4>
+        <div class="media bg-white p-1">
+                <?= ((strlen($this->group->Picture) > 0) ? "<img class=\"float-left mr-2 mb-2 img-thumbnail\" src='group/realimg/{$this->group->getPKValue()}' width=\"100px\" alt='Image for the group {$group_name_html}' />" : ''); ?>
+            <div class="media-body bg-groupheader p-1">
                 <?php echo $purifier->purify(nl2br($this->group->getDescription())) ?>
+                <?php if ($this->isGroupMember() || $this->isGroupAdmin()) { ?>
+                    <a href="/group/<?= $this->group->id ?>/new"
+                        class="btn btn-primary float-right"><?php echo $this->words->getBuffered('ForumNewTopic'); ?></a>
+                <?php } elseif ($this->group->Type !== GroupType::NEED_ACCEPTANCE) { ?>
+                    <a class="btn btn-primary float-right" href="group/<?= $this->group->id ?>/join">
+                        <?= $words->getSilent('GroupsJoinTheGroup'); ?>
+                    </a>
+                <?php } ?>
             </div>
         </div>
 
-        <div class="pt-3"><h3 class="float-left m-0 mb-2"><?php echo $words->getFormatted('ForumRecentPostsLong'); ?></h3><a
-            href="<? echo $uri; ?>/forum/new"
-            class="btn btn-primary float-right"><?php echo $this->words->getBuffered('ForumNewTopic'); ?></a></div>
-
-        <div class="w-100 pt-5">
+        <div class="w-100 mt-3">
+            <h3 class="float-left w-100"><?php echo $words->getFormatted('ForumRecentPostsLong'); ?></h3>
             <?php
-            if (!$this->isGroupMember() && $this->group->latestPost) {
+            $isGroupMember = $this->isGroupMember();
+            if (!$isGroupMember && $this->group->latestPost) {
                 echo '<div class="small">' . $words->get('GroupInfoLastActivity', date('Y-m-d H:i', $this->group->latestPost)) . '</div>';
             }
 
             $showNewTopicButton = false;
-            if ($this->isGroupMember()) {
+            if ($isGroupMember || ($this->group->Type !== GroupType::INVITE_ONLY && $this->isGroupAdmin())) {
                 $showNewTopicButton = true;
             }
 
-            echo $Forums->showExternalGroupThreads($group_id, $this->isGroupMember(), false, $showNewTopicButton); ?>
+            if ($isGroupMember || $this->group->Type !== GroupType::NEED_ACCEPTANCE)
+            {
+                echo $Forums->showExternalGroupThreads($group_id, $this->isGroupMember(), false, $showNewTopicButton);
+            }
+            ?>
         </div>
 
 </div>
@@ -42,11 +53,6 @@
 <div class="col-12 col-md-4">
 
     <?php
-    $a = new APP_User();
-    if (!$a->isBWLoggedIn('NeedMore,Pending')) {
-        // not logged in users cannot join groups
-        echo $words->get('GroupsJoinLoginFirst');
-    } else {
         $model = new GroupsModel();
         if ($this->member) {
             $memberId = $this->member->id;
@@ -68,16 +74,15 @@
                     echo $words->getSilent('GroupsJoinNeedAccept');
                 }
                 if (!$this->isGroupMember()) { ?>
-                    <a class="btn btn-outline-primary btn-block mb-3" href="group/<?= $this->group->id ?>/join">
+                    <a class="btn btn-primary btn-block mb-3" href="group/<?= $this->group->id ?>/join">
                         <?= $words->getSilent('GroupsJoinTheGroup'); ?>
                     </a>
                     <?php echo $words->flushBuffer(); ?>
                 <?php }
         }
-    } // endif logged in member
     ?>
 
-    <div class="h3"><?= $words->get('GroupMembers'); ?></div>
+    <div class="h4 mb-0"><?= $words->get('GroupMembers'); ?></div>
 
     <div class="row justify-content-between px-3">
     <?php $memberlist_widget->render() ?>
@@ -85,7 +90,7 @@
 
     <?php
     if ($memberCount != $visibleMemberCount) {
-        $login_url = 'login/groups/' . $this->group->id;
+        $login_url = 'login/group/' . $this->group->id;
         $loginstr = '<a href="' . $login_url . '#login-widget" alt="login" id="header-login-link">' . $words->getBuffered('GroupsMoreMemberLogin') . '</a>';
         echo $words->get("GroupMoreMembers", $memberCount - $visibleMemberCount, $loginstr);
     } else { ?>
@@ -93,25 +98,30 @@
            class="btn btn-block btn-outline-primary"><?= $words->get('GroupSeeAllMembers'); ?></a>
     <?php } ?>
 
+    <div class="h4"><?php echo $words->get('GroupAdmins'); ?></div>
+    <div class="row justify-content-between px-3">
+
+    <?php $admins = $this->group->getGroupOwners();
+    if (isset($admins) && !empty($admins)) {
+        $i = 0;
+        foreach ($admins as $admin) {
+            $padding = ($i % 2 == 0) ? 'pl-0' : 'pl-2';
+            echo '<div class="col-6 ' . $padding . ' mb-1">';
+            echo MOD_layoutbits::PIC_50_50($admin->Username);
+            echo '<br><a href="members/' . $admin->Username . '" class="small"> ' . $admin->Username . '</a>';
+            echo '</div>';
+            $i++;
+        }
+    } else {
+        echo $words->get('GroupNoAdmin');
+    } ?>
+    </div>
+
     <?php
     // Hide the admin list if no user is logged in (which means that visible lis
     if ($memberCount == $visibleMemberCount) {
 
         ?>
-
-        <h4 class="mt-3"><?php echo $words->get('GroupAdmins'); ?></h4>
-
-        <?php $admins = $this->group->getGroupOwners();
-        if (isset($admins) && !empty($admins)) {
-            foreach ($admins as $admin) {
-                echo '<div class="w-100 mb-1">';
-                echo MOD_layoutbits::PIC_50_50($admin->Username);
-                echo '<a href="members/' . $admin->Username . '" class="small"> ' . $admin->Username . '</a>';
-                echo '</div>';
-            }
-        } else {
-            echo $words->get('GroupNoAdmin');
-        } ?>
 
         <?php
         if ($this->isGroupMember()) { ?>
@@ -127,16 +137,16 @@
 </div>
 
 </div>
-<div class="pt-3 row">
+<div class="mt-5 row">
 
     <?php
     $relatedgroups = $this->group->findRelatedGroups($group_id); ?>
     <div class="col-12 col-md-8 h3"><?php echo $words->getFormatted('RelatedGroupsTitle'); ?></div>
-    <? if ($this->isGroupMember()) { ?>
+    <?php if ($this->isGroupMember()) { ?>
         <div class="col-12 col-md-4 float-md-right">
-            <a href="group/<? echo $this->group->id; ?>/selectrelatedgroup" class="btn btn-block btn-outline-primary"><?= $words->getFormatted('AddRelatedGroupButton'); ?></a>
+            <a href="group/<?php echo $this->group->id; ?>/selectrelatedgroup" class="btn btn-block btn-outline-primary"><?= $words->getFormatted('AddRelatedGroupButton'); ?></a>
         </div>
-    <? } else {
+    <?php } else {
         echo '<div class="col-12 col-md-4"></div>';
     }
     foreach ($relatedgroups as $group_data) :

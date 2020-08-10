@@ -17,9 +17,7 @@ if (empty($vars)) {
     $vars['activity-start-date'] = $this->activity->dateTimeStart;
     $vars['activity-end-date'] = $this->activity->dateTimeEnd;
     $vars['activity-description'] = $this->activity->description;
-    if ($this->activity->public) {
-        $vars['activity-public'] = true;
-    }
+    $vars['activity-public'] = $this->activity->public;
 }
 ?>
 <div class="row">
@@ -79,17 +77,22 @@ if (empty($vars)) {
                         } ?>
                     </textarea>
                     </div>
+                    <div class="form-check mb-1">
+                        <input type="checkbox" class="form-check-input" id="activity-public" name="activity-public" value="1"
+                            <?php if (isset($vars['activity-public']) && $vars['activity-public']) { echo 'checked="checked"'; } ?>>
+                        <label for="activity-public" class="form-check-label"><?php echo $words->get('ActivityOnline'); ?></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-4">
                     <div class="form-group mb-1">
                         <label for="activity-start-date"><?php echo $words->get('ActivityStart'); ?>*</label>
                         <div class="input-group date"
-                             id="datetimepicker1"
+                             id="activity-start-datepicker"
                              data-target-input="nearest">
                             <div class="input-group-prepend"
-                                 data-target="#datetimepicker1"
+                                 data-target="#activity-start-date"
                                  data-toggle="datetimepicker">
-                                <div class="input-group-text">
+                                <div class="input-group-text bg-primary white">
                                     <i class="fa fa-calendar"></i>
                                 </div>
                             </div>
@@ -98,19 +101,19 @@ if (empty($vars)) {
                                    name="activity-start-date"
                                    class="form-control datetimepicker-input"
                                    data-toggle="datetimepicker"
-                                   data-target="#datetimepicker1" value="<?= $vars['activity-start-date'] ?>" >
+                                   data-target="#activity-start-date" value="<?= $vars['activity-start-date'] ?>" >
                         </div>
                     </div>
 
                     <div class="form-group mb-1">
                         <label for="activity-end-date"><?php echo $words->get('ActivityEnd'); ?>*</label>
                         <div class="input-group date"
-                             id="datetimepicker2"
+                             id="activity-end-datepicker"
                              data-target-input="nearest">
                             <div class="input-group-prepend"
-                                 data-target="#datetimepicker2"
+                                 data-target="#activity-end-date"
                                  data-toggle="datetimepicker">
-                                <div class="input-group-text">
+                                <div class="input-group-text bg-primary white">
                                     <i class="fa fa-calendar"></i>
                                 </div>
                             </div>
@@ -119,7 +122,7 @@ if (empty($vars)) {
                                    name="activity-end-date"
                                    class="form-control datetimepicker-input"
                                    data-toggle="datetimepicker"
-                                   data-target="#datetimepicker2" value="<?= $vars['activity-end-date'] ?>" >
+                                   data-target="#activity-end-date" value="<?= $vars['activity-end-date'] ?>" >
                         </div>
                     </div>
 
@@ -127,7 +130,7 @@ if (empty($vars)) {
                         <label for="activity-location"><?php echo $words->getBuffered('ActivitiesLocationSearch'); ?></label>
                         <div class="input-group">
                             <div class="input-group-prepend">
-                                <span class="input-group-text"><i class="fa fa-globe"></i></span>
+                                <span class="input-group-text bg-primary white"><i class="fa fa-globe"></i></span>
                             </div>
                             <input type="text" id="activity-location" name="activity-location"
                                    class="form-control search-picker" value="<?= $vars['activity-location'] ?? ''; ?>"
@@ -162,21 +165,19 @@ if (empty($vars)) {
 </div>
 <script>
     $(function () {
-        let activityStartDate = $('#datetimepicker1');
-        let activityEndDate = $('#datetimepicker2');
-        let lang = document.documentElement.lang;
+        let activityStartDate = $('#activity-start-date');
+        let activityEndDate = $('#activity-end-date');
         activityStartDate.datetimepicker({
-            locale: lang,
             format: 'YYYY-MM-DD HH:mm',
             collapse: false,
-            sideBySide: false
+            sideBySide: false,
+            useCurrent: false,
         });
         activityEndDate.datetimepicker({
-            locale: lang,
             format: 'YYYY-MM-DD HH:mm',
             collapse: false,
-            sideBySide: true,
-            useCurrent: false
+            sideBySide: false,
+            useCurrent: false,
         });
 
         activityStartDate.on("change.datetimepicker", function (e) {
@@ -187,4 +188,5 @@ if (empty($vars)) {
         });
     });
 </script>
+<script src="build/cktranslations/<?= $this->session->get('lang', 'en');?>.js"></script>
 

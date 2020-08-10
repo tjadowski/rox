@@ -24,6 +24,7 @@ Boston, MA  02111-1307, USA.
      * @author Fake51
      */
 
+use App\Doctrine\GroupType;
 use App\Doctrine\MemberStatusType;
 
 /**
@@ -122,10 +123,9 @@ class GroupsModel extends  RoxModelBase
         {
             return $group->countAll();
         }
-        $terms_array = explode(' ', $terms);
         $strings = array();
 
-        foreach ($terms_array as $term)
+        foreach ($terms as $term)
         {
             $strings[] = "Name LIKE '%" . $this->dao->escape($term) . "%'";
         }
@@ -136,15 +136,14 @@ class GroupsModel extends  RoxModelBase
     /**
      * Find and return groups, using search terms from search page
      *
-     * @param string $terms - search terms
+     * @param array $terms - search terms
      * @param int $page - offset to start from
      * @param string $order - sortorder
      * @param int $amount how many results to find
      * @return mixed false or an array of Groups
      */
-    public function findGroups($terms = '', $page = 1, $order = '', $amount = 10)
+    public function findGroups($terms = [], $page = 1, $order = '', $amount = 10)
     {
-
         if (!empty($order))
         {
             switch ($order)
@@ -156,16 +155,16 @@ class GroupsModel extends  RoxModelBase
                     $order = 'Name DESC';
                     break;
                 case "membersasc":
-                    $order = "(SELECT COUNT(*) FROM membersgroups AS mg, members as m WHERE mg.IdGroup = groups.id AND mg.Status = 'In' AND m.id = mg.idmember AND m.status IN (" . MemberStatusType::ACTIVE_ALL . ")) ASC, Name ASC";
+                    $order = "(SELECT COUNT(*) FROM membersgroups AS mg, members as m WHERE mg.IdGroup = g.id AND mg.Status = 'In' AND m.id = mg.idmember AND m.status IN (" . MemberStatusType::ACTIVE_ALL . ")) ASC, Name ASC";
                     break;
                 case "membersdesc":
-                    $order = "(SELECT COUNT(*) FROM membersgroups AS mg, members as m WHERE mg.IdGroup = groups.id AND mg.Status = 'In' AND m.id = mg.idmember AND m.status IN (" . MemberStatusType::ACTIVE_ALL . ")) DESC, Name ASC";
+                    $order = "(SELECT COUNT(*) FROM membersgroups AS mg, members as m WHERE mg.IdGroup = g.id AND mg.Status = 'In' AND m.id = mg.idmember AND m.status IN (" . MemberStatusType::ACTIVE_ALL . ")) DESC, Name ASC";
                     break;
                 case "actasc":
-                    $order = "(SELECT MAX(forums_posts.create_time) FROM forums_threads, forums_posts WHERE groups.id = forums_threads.IdGroup AND forums_posts.postid = forums_threads.last_postid) ASC, Name ASC";
+                    $order = "(SELECT MAX(forums_posts.create_time) FROM forums_threads, forums_posts WHERE g.id = forums_threads.IdGroup AND forums_posts.id = forums_threads.last_postid) ASC, Name ASC";
                     break;
                 case "actdesc":
-                    $order = "(SELECT MAX(forums_posts.create_time) FROM forums_threads, forums_posts WHERE groups.id = forums_threads.IdGroup AND forums_posts.postid = forums_threads.last_postid) DESC, Name ASC";
+                    $order = "(SELECT MAX(forums_posts.create_time) FROM forums_threads, forums_posts WHERE g.id = forums_threads.IdGroup AND forums_posts.id = forums_threads.last_postid) DESC, Name ASC";
                     break;
                 case "createdasc":
                     $order = 'created ASC, Name ASC';
@@ -184,11 +183,10 @@ class GroupsModel extends  RoxModelBase
             $order = 'Name ASC';
         }
 
-        $terms_array = explode(' ', $terms);
-
+        /** @var Group $group */
         $group = $this->createEntity('Group');
         $group->sql_order = $order;
-        return $this->_group_list = $group->findBySearchTerms($terms_array, (($page - 1) * $amount), $amount);
+        return $this->_group_list = $group->findBySearchTerms($terms, (($page - 1) * $amount), $amount);
     }
 
 
@@ -251,13 +249,13 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
      */
     public function getMyGroups()
     {
-        if (!$this->_session->has( 'IdMember' ))
+        if (!$this->session->has( 'IdMember' ))
         {
             return array();
         }
         else
         {
-            return $this->getGroupsForMember($this->_session->get('IdMember'));
+            return $this->getGroupsForMember($this->session->get('IdMember'));
         }
     }
 
@@ -288,8 +286,8 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
     public function setGroupVisit($groupId)
     {
         if (
-            (!$this->_session->has( 'my_group_visits' ) ||
-            (!$group_visits = unserialize($this->_session->get('my_group_visits'))) ||
+            (!$this->session->has( 'my_group_visits' ) ||
+            (!$group_visits = unserialize($this->session->get('my_group_visits'))) ||
             (!is_array($group_visits))
         )) {
             $group_visits = array();
@@ -298,15 +296,15 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
 
         // sort by value, while preserving the keys
         asort($group_visits);
-        $this->_session->set( 'my_group_visits', serialize(array_slice($group_visits, 0, 5)) );
-        // $this->_session->remove('my_group_visits');
+        $this->session->set( 'my_group_visits', serialize(array_slice($group_visits, 0, 5)) );
+        // $this->session->remove('my_group_visits');
     }
 
     public function getLastVisited()
     {
         if (
-            (!$this->_session->has( 'my_group_visits' ) ||
-            (!$group_visits = unserialize($this->_session->get('my_group_visits'))) ||
+            (!$this->session->has( 'my_group_visits' ) ||
+            (!$group_visits = unserialize($this->session->get('my_group_visits'))) ||
             (!is_array($group_visits))
         )) {
             return array();
@@ -344,7 +342,8 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
             $problems['GroupDesc_'] = true;
         }
 
-        if (!isset($input['Type']) || !in_array($input['Type'], array('NeedAcceptance', 'NeedInvitation','Public')))
+        if (!isset($input['Type'])
+            || !in_array($input['Type'], [GroupType::PUBLIC, GroupType::NEED_ACCEPTANCE, GroupType::INVITE_ONLY]))
         {
             $problems['Type'] = true;
         }
@@ -442,11 +441,16 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
             return false;
         }
 
-        if (!$this->getLoggedInMember()->hasPrivilege('GroupsController', 'GroupSettings', $group))
+        $member = $this->getLoggedInMember();
+        if (!$member)
         {
             return false;
         }
-        return true;
+
+        $isGroupAdmin = $group->isGroupAdmin($member);
+        $isGroupOwner = $group->isGroupOwner($member);
+
+        return $isGroupAdmin || $isGroupOwner;
     }
 
     /**
@@ -489,11 +493,11 @@ WHERE IdGroup=" . (int)$group->id . " AND IdMember=" . (int)$memberid;
         {
             return $membership->updateStatus('In');
         }
-        elseif ($group->Type == 'NeedInvitation')
+        elseif ($group->Type == GroupType::INVITE_ONLY)
         {
             return false;
         }
-        $status = (($group->Type == 'NeedAcceptance') ? 'WantToBeIn' : 'In');
+        $status = (($group->Type == GroupType::NEED_ACCEPTANCE) ? 'WantToBeIn' : 'In');
         $result = (bool) $this->createEntity('GroupMembership')->memberJoin($group, $member, $status);
         if ($result && $status == 'WantToBeIn')
         {

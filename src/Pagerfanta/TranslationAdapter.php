@@ -21,10 +21,6 @@ class TranslationAdapter implements AdapterInterface
      * SearchAdapter constructor.
      *
      * @SuppressWarnings(PHPMD.StaticAccess)
-     *
-     * @param Connection $connection
-     * @param string     $locale
-     * @param string     $code
      */
     public function __construct(Connection $connection, string $locale, string $code)
     {
@@ -34,22 +30,24 @@ class TranslationAdapter implements AdapterInterface
         $this->query = "
             SELECT distinct p.code
                  , COALESCE(pi_lang.shortcode,pi_dflt.shortcode) AS shortcode
-                 , COALESCE(pi_lang.Sentence,pi_dflt.Sentence) AS Sentence
+                 , COALESCE(pi_lang.domain,pi_dflt.domain) AS domain
+                 , COALESCE(pi_lang.Sentence,pi_dflt.Sentence) AS sentence
                  , COALESCE(pi_lang.created,pi_dflt.created) AS created
               FROM words AS p
-            LEFT OUTER 
-              JOIN words AS pi_dflt 
+            LEFT OUTER
+              JOIN words AS pi_dflt
                 ON pi_dflt.code = p.code
                 AND pi_dflt.shortcode = 'en'
-                AND pi_dflt.isArchived IS NULL
-            LEFT OUTER 
-              JOIN words AS pi_lang 
+                AND (pi_dflt.isArchived IS NULL OR pi_dflt.isArchived = 0)
+                AND (pi_dflt.donottranslate = 'No')
+            LEFT OUTER
+              JOIN words AS pi_lang
                 ON pi_lang.code = p.code
                 AND pi_lang.shortcode = '{$locale}'
-                AND pi_lang.isArchived IS NULL
+                AND (pi_lang.isArchived IS NULL OR pi_lang.isArchived = 0)
                 ";
         if (!empty($code)) {
-            $this->query .= " WHERE (pi_lang.code LIKE '%".$code."%' OR pi_dflt.code LIKE '%".$code."%')";
+            $this->query .= " WHERE (pi_lang.code LIKE '%" . $code . "%' OR pi_dflt.code LIKE '%" . $code . "%')";
         }
         $this->query .= '
             ORDER BY created desc';
@@ -62,9 +60,18 @@ class TranslationAdapter implements AdapterInterface
      */
     public function getNbResults()
     {
-        $query = "SELECT count(*) as cnt FROM words WHERE shortcode = 'en' AND isArchived IS NULL";
+        $query = "
+            SELECT
+                count(*) as cnt
+            FROM
+                 words
+            WHERE
+                shortcode = 'en'
+                AND (isArchived IS NULL OR isArchived = 0)
+                AND (donottranslate = 'No')
+        ";
         if (!empty($this->code)) {
-            $query .= " AND code LIKE '%".$this->code."%'";
+            $query .= " AND code LIKE '%" . $this->code . "%'";
         }
 
         $statement = $this->connection->query($query);
@@ -83,7 +90,7 @@ class TranslationAdapter implements AdapterInterface
      */
     public function getSlice($offset, $length)
     {
-        $query = $this->query.' LIMIT '.$offset.', '.$length;
+        $query = $this->query . ' LIMIT ' . $offset . ', ' . $length;
         $statement = $this->connection->query($query);
 
         return $statement->fetchAll();

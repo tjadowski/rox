@@ -7,7 +7,10 @@
 
 namespace App\Entity;
 
+use App\Utilities\LifecycleCallbacksTrait;
 use Carbon\Carbon;
+use DateTime;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\Exception\InvalidArgumentException;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -17,12 +20,16 @@ use Symfony\Component\Validator\Constraints as Assert;
  *
  * @ORM\Table(name="request")
  * @ORM\Entity(repositoryClass="App\Repository\RequestRepository")
+ * @ORM\HasLifecycleCallbacks
  *
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
  */
 class HostingRequest
 {
+    // Add created and updated
+    use LifecycleCallbacksTrait;
+
     const REQUEST_OPEN = 0;
     const REQUEST_CANCELLED = 1;
     const REQUEST_DECLINED = 2;
@@ -39,7 +46,7 @@ class HostingRequest
     private $id;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="arrival", type="datetime")
      *
@@ -51,7 +58,7 @@ class HostingRequest
     private $arrival;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="departure", type="datetime", nullable=true)
      *
@@ -87,6 +94,17 @@ class HostingRequest
      * @ORM\Column(name="status", type="integer")
      */
     private $status = self::REQUEST_OPEN;
+
+    /**
+     * @var Message[]
+     * @ORM\OneToMany(targetEntity="Message", mappedBy="request")
+     */
+    private $messages;
+
+    public function __construct()
+    {
+        $this->messages = new ArrayCollection();
+    }
 
     /**
      * Get id.
@@ -218,7 +236,7 @@ class HostingRequest
             self::REQUEST_DECLINED !== $status &&
             self::REQUEST_TENTATIVELY_ACCEPTED !== $status &&
             self::REQUEST_ACCEPTED !== $status) {
-            throw new InvalidArgumentException('Request status outside of valid range. Got '.$status.'instead of REQUEST_OPEN (0), REQUEST_CANCELLED (1), REQUEST_DECLINED (2), REQUEST_TENTATIVELY_ACCEPTED (4) or REQUEST_ACCEPTED (8) ');
+            throw new InvalidArgumentException('Request status outside of valid range. Got ' . $status . 'instead of REQUEST_OPEN (0), REQUEST_CANCELLED (1), REQUEST_DECLINED (2), REQUEST_TENTATIVELY_ACCEPTED (4) or REQUEST_ACCEPTED (8) ');
         }
 
         $this->status = $status;

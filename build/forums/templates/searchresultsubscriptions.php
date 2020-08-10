@@ -1,3 +1,4 @@
+<div class="row">
 <?php
 /*
 
@@ -46,35 +47,35 @@ Boston, MA  02111-1307, USA.
             <thead>
             <tr>
                 <th></th>
-                <th class="w-100">Group Name</th>
-                <th>Subscription</th>
+                <th class="w-100"><?= $words->get('TableSubscriptionsGroupName') ?></th>
+                <th><?= $words->get('TableTitleSubscriptions') ?></th>
             </tr>
             </thead>
             <tbody>
-        <?
+        <?php
             foreach ($TResults->Groups as $group) {
         ?>
         <tr>
-            <th scope="row"><img src="group/thumbimg/<? echo $group->IdGroup; ?>" width="50" height="50"></th>
-            <td class="align-middle"><a href="group/<? echo $group->IdGroup; ?>/forum"><? echo htmlspecialchars($group->Name); ?></a></td>
+            <th scope="row"><img src="group/thumbimg/<?php echo $group->IdGroup; ?>" width="50" height="50"></th>
+            <td class="align-middle"><a href="group/<?php echo $group->IdGroup; ?>/forum"><?php echo htmlspecialchars($group->Name); ?></a></td>
             <td class="align-middle">
-                <div class="btn-group" role="group" aria-label="Toggle Subscription On-Off">
-                <? if ($group->AcceptMails == 'yes') { ?>
-                    <a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">On</a>
-                    <a href="forums/subscriptions/unsubscribe/group/<? echo $group->IdGroup; ?>" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">Off</a>
+                <div class="btn-group" role="group" aria-label="<?= $words->get('AriaLabelToggleSubscriptionOnOff') ?>">
+                <?php if ($group->AcceptMails == 'yes') { ?>
+                    <a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;"><?= $words->get('ToggleSubscriptionOn') ?></a>
+                    <a href="forums/subscriptions/unsubscribe/group/<?php echo $group->IdGroup; ?>" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;"><?= $words->get('ToggleSubscriptionOff') ?></a>
                 </div></td>
-                <?
+                <?php
                 } else { ?>
-                <a href="forums/subscriptions/subscribe/group/<? echo $group->IdGroup; ?>" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">On</a>
-                <a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">Off</a>
+                <a href="forums/subscriptions/subscribe/group/<?php echo $group->IdGroup; ?>" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;"><?= $words->get('ToggleSubscriptionOn') ?></a>
+                <a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;"><?= $words->get('ToggleSubscriptionOff') ?></a>
                 </div></td>
-                <? } ?>
+                <?php } ?>
         </tr>
-    <? } ?>
+    <?php } ?>
     </tbody>
     </table>
     </div>
-<?
+<?php
 } else {
     echo '<div class="col-12">' . $words->get('ForumNoGroups') . '</div>';
 }
@@ -82,7 +83,7 @@ Boston, MA  02111-1307, USA.
 
 <div class="col-12 mt-3"><h3><?= $words->getFormatted("ForumThreadSubscriptions") ?></h3></div>
 
-<?
+<?php
 if (count($TResults->TData) > 0) { ?>
 
     <div class="col-12">
@@ -90,30 +91,30 @@ if (count($TResults->TData) > 0) { ?>
             <thead>
             <tr>
                 <th></th>
-                <th class="w-100">Thread Name</th>
-                <th>Subscription</th>
+                <th class="w-100"><?= $words->get('TableSubscriptionsGroupName') ?></th>
+                <th><?= $words->get('TableTitleSubscriptions') ?></th>
             </tr>
             </thead>
             <tbody>
-<?
+<?php
     foreach ($TResults->TData as $data) {
 
         echo '<tr><th scope="row">';
-        echo '<a href="forums/subscriptions/unsubscribe/thread/' . $data->IdSubscribe . '/' . $data->UnSubscribeKey . '" class="btn btn-danger"><i class="fa fa-times" aria-hidden="true" title="Remove from list"></i></a>';
+        echo '<a href="forums/subscriptions/unsubscribe/thread/' . $data->IdSubscribe . '/' . $data->UnSubscribeKey . '" class="btn btn-danger"><i class="fa fa-times" aria-hidden="true" title="' . $words->get('SubscriptionTitleUnscribeDiscussion') . '"></i></a>';
         echo '</th>';
-        echo '<td class="align-middle"><a href="forums/s ' . $data->IdThread . ' ">' . $words->fTrad($data->IdTitle) . '</a><br>';
+        echo '<td class="align-middle"><a href="forums/s' . $data->IdThread . ' ">' . $words->fTrad($data->IdTitle) . '</a><br>';
         echo '<span class="small">' . $data->subscribedtime . '</span></td>';
 
-        echo '<td class="align-middle"><div class="btn-group" role="group" aria-label="Toggle Subscription On-Off">';
+        echo '<td class="align-middle"><div class="btn-group" role="group" aria-label="' . $words->get('AriaLabelToggleSubscriptionOnOff') . '">';
 
         if ($data->notificationsEnabled > 0) {
             // on - turn off
-            echo '<a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">On</a>';
-            echo '<a href="forums/subscriptions/disable/thread/' . $data->IdThread . '/' . $data->UnSubscribeKey . '" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">Off</a>';
+            echo '<a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">' . $words->get('ToggleSubscriptionOn') . '</a>';
+            echo '<a href="forums/subscriptions/disable/thread/' . $data->IdThread . '/' . $data->UnSubscribeKey . '" type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">' . $words->get('ToggleSubscriptionOff') . '</a>';
         } else {
             // off - turn on
-            echo '<a href="forums/subscriptions/enable/thread/' . $data->IdThread . '/' . $data->UnSubscribeKey . '"  type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">On</a>';
-            echo '<a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">Off</a>';
+            echo '<a href="forums/subscriptions/enable/thread/' . $data->IdThread . '/' . $data->UnSubscribeKey . '"  type="button" class="btn btn-light mb-0 border-0" style="border: 1px solid #868e96 !important;">' . $words->get('ToggleSubscriptionOn') . '</a>';
+            echo '<a class="btn btn-primary" style="color: #fff; cursor: default; border: 1px solid #868e96 !important;">' . $words->get('ToggleSubscriptionOff') . '</a>';
         }
 
         echo '</td></tr>';
@@ -125,3 +126,4 @@ if (count($TResults->TData) > 0) { ?>
     echo '<div class="col-12">' . $words->get('ForumNoThreadsSubscribed') . '</div>';
 }
 ?>
+</div>

@@ -8,6 +8,7 @@
 namespace App\Entity;
 
 use Carbon\Carbon;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -15,7 +16,7 @@ use Doctrine\ORM\Mapping as ORM;
  *
  * @ORM\Table(name="community_news_comment")
  * @ORM\Entity(repositoryClass="App\Repository\CommunityNewsCommentRepository")
- *
+ * @ORM\HasLifecycleCallbacks
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
  */
@@ -38,7 +39,7 @@ class CommunityNewsComment
     private $author;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
@@ -66,20 +67,6 @@ class CommunityNewsComment
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
-
-    /**
-     * Set created.
-     *
-     * @param \DateTime $created
-     *
-     * @return CommunityNewsComment
-     */
-    public function setCreated($created)
-    {
-        $this->created = $created;
-
-        return $this;
-    }
 
     /**
      * Get created.
@@ -169,17 +156,12 @@ class CommunityNewsComment
         return $this;
     }
 
-    /**
-     * @return Member
-     */
     public function getAuthor(): Member
     {
         return $this->author;
     }
 
     /**
-     * @param Member $author
-     *
      * @return CommunityNewsComment
      */
     public function setAuthor(Member $author)
@@ -187,5 +169,15 @@ class CommunityNewsComment
         $this->author = $author;
 
         return $this;
+    }
+
+    /**
+     * Triggered on insert.
+     *
+     * @ORM\PrePersist
+     */
+    public function onPrePersist()
+    {
+        $this->created = new DateTime('now');
     }
 }

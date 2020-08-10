@@ -17,8 +17,6 @@ class WikiModel
 
     /**
      * @required
-     *
-     * @param RoxWikiParserBackend $wikiParserBackend
      */
     public function setWikiParserBackend(RoxWikiParserBackend $wikiParserBackend)
     {
@@ -39,11 +37,11 @@ class WikiModel
 
     public function getPagename($pageTitle)
     {
-        if (substr($pageTitle, 0, 6) === 'Group ' ) {
+        if ('Group ' === substr($pageTitle, 0, 6)) {
             $pageTitle = str_replace('Group ', 'Group_', trim($pageTitle));
         }
 
-        if (substr($pageTitle, 0, 6) === 'Group_' ) {
+        if ('Group_' === substr($pageTitle, 0, 6)) {
             return str_replace(' ', '', trim($pageTitle));
         }
 
@@ -70,5 +68,31 @@ class WikiModel
         }
 
         return $result;
+    }
+
+    public function createWikiPage($pageTitle, $wikiMarkup)
+    {
+        $newWikiPage = new Wiki();
+        $newWikiPage->setPagename($this->getPagename($pageTitle));
+        $newWikiPage->setVersion(1);
+        $newWikiPage->setContent($wikiMarkup);
+        $em = $this->getManager();
+        $em->persist($newWikiPage);
+        $em->flush();
+
+        return $newWikiPage;
+    }
+
+    public function addNewVersion($wikiPage, $wikiMarkup)
+    {
+        $newWikiPage = clone $wikiPage;
+        $newWikiPage->setContent($wikiMarkup);
+        // \todo make this safe against multiple edits at the same time
+        $newWikiPage->setVersion($wikiPage->getVersion() + 1);
+        $em = $this->getManager();
+        $em->persist($newWikiPage);
+        $em->flush();
+
+        return $newWikiPage;
     }
 }

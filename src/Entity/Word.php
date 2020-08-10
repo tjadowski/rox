@@ -7,6 +7,8 @@
 
 namespace App\Entity;
 
+use Carbon\Carbon;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -30,6 +32,13 @@ class Word
     /**
      * @var string
      *
+     * @ORM\Column(name="domain", type="domain", length=16, nullable=false)
+     */
+    private $domain;
+
+    /**
+     * @var string
+     *
      * @ORM\Column(name="ShortCode", type="string", length=16, nullable=false)
      */
     private $shortCode = 'en';
@@ -42,7 +51,7 @@ class Word
     private $sentence;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="updated", type="datetime", nullable=false)
      */
@@ -53,12 +62,12 @@ class Word
      *
      * @ORM\Column(name="donottranslate", type="string", nullable=false)
      */
-    private $donottranslate = 'no';
+    private $doNotTranslate = 'no';
 
     /**
      * @var Member
      *
-     * @ORM\OneToOne(targetEntity="Member")
+     * @ORM\ManyToOne(targetEntity="Member")
      * @ORM\JoinColumn(name="IdMember", referencedColumnName="id")
      */
     private $author;
@@ -66,7 +75,7 @@ class Word
     /**
      * @var Language
      *
-     * @ORM\OneToOne(targetEntity="Language")
+     * @ORM\ManyToOne(targetEntity="Language")
      * @ORM\JoinColumn(name="IdLanguage", referencedColumnName="id")
      */
     private $language;
@@ -79,7 +88,7 @@ class Word
     private $description;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
@@ -97,10 +106,10 @@ class Word
      *
      * @ORM\Column(name="isarchived", type="boolean", nullable=true)
      */
-    private $isarchived;
+    private $isArchived = null;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="majorupdate", type="datetime", nullable=false)
      */
@@ -190,7 +199,7 @@ class Word
     /**
      * Set updated.
      *
-     * @param \DateTime $updated
+     * @param DateTime $updated
      *
      * @return Word
      */
@@ -204,7 +213,7 @@ class Word
     /**
      * Get updated.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getUpdated()
     {
@@ -214,13 +223,13 @@ class Word
     /**
      * Set donottranslate.
      *
-     * @param string $donottranslate
+     * @param string $doNotTranslate
      *
      * @return Word
      */
-    public function setDonottranslate($donottranslate)
+    public function setDoNotTranslate($doNotTranslate)
     {
-        $this->donottranslate = $donottranslate;
+        $this->doNotTranslate = $doNotTranslate;
 
         return $this;
     }
@@ -230,9 +239,9 @@ class Word
      *
      * @return string
      */
-    public function getDonottranslate()
+    public function getDoNotTranslate()
     {
-        return $this->donottranslate;
+        return $this->doNotTranslate;
     }
 
     /**
@@ -311,7 +320,7 @@ class Word
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return Word
      */
@@ -325,11 +334,11 @@ class Word
     /**
      * Get created.
      *
-     * @return \DateTime
+     * @return Carbon
      */
     public function getCreated()
     {
-        return $this->created;
+        return Carbon::instance($this->created);
     }
 
     /**
@@ -360,13 +369,13 @@ class Word
     /**
      * Set isarchived.
      *
-     * @param bool $isarchived
+     * @param bool $isArchived
      *
      * @return Word
      */
-    public function setIsarchived($isarchived)
+    public function setIsArchived($isArchived)
     {
-        $this->isarchived = $isarchived;
+        $this->isArchived = $isArchived;
 
         return $this;
     }
@@ -376,15 +385,15 @@ class Word
      *
      * @return bool
      */
-    public function getIsarchived()
+    public function getIsArchived()
     {
-        return $this->isarchived;
+        return $this->isArchived;
     }
 
     /**
      * Set majorupdate.
      *
-     * @param \DateTime $majorUpdate
+     * @param DateTime $majorUpdate
      *
      * @return Word
      */
@@ -398,7 +407,7 @@ class Word
     /**
      * Get majorUpdate.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getMajorUpdate()
     {
@@ -413,5 +422,20 @@ class Word
     public function getId()
     {
         return $this->id;
+    }
+
+    public function getDomain(): string
+    {
+        return $this->domain;
+    }
+
+    /**
+     * @return Word
+     */
+    public function setDomain(string $domain): self
+    {
+        $this->domain = $domain;
+
+        return $this;
     }
 }

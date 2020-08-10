@@ -7,6 +7,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -29,14 +30,14 @@ class Faq
     private $qAndA;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="updated", type="datetime", nullable=false)
      */
     private $updated;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
@@ -57,7 +58,7 @@ class Faq
     private $sortorder = '0';
 
     /**
-     * @var \App\Entity\FaqCategory
+     * @var FaqCategory
      *
      * @ORM\ManyToOne(targetEntity="App\Entity\FaqCategory", fetch="EAGER")
      * @ORM\JoinColumns({
@@ -102,7 +103,7 @@ class Faq
     /**
      * Set updated.
      *
-     * @param \DateTime $updated
+     * @param DateTime $updated
      *
      * @return Faq
      */
@@ -116,7 +117,7 @@ class Faq
     /**
      * Get updated.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getUpdated()
     {
@@ -126,7 +127,7 @@ class Faq
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return Faq
      */
@@ -140,7 +141,7 @@ class Faq
     /**
      * Get created.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreated()
     {
@@ -235,8 +236,6 @@ class Faq
     }
 
     /**
-     * @param string $answer
-     *
      * @return Faq
      */
     public function setAnswer(string $answer)
@@ -252,8 +251,6 @@ class Faq
     }
 
     /**
-     * @param string $question
-     *
      * @return Faq
      */
     public function setQuestion(string $question)
@@ -270,7 +267,7 @@ class Faq
      */
     public function onPrePersist()
     {
-        $this->created = new \DateTime('now');
+        $this->created = new DateTime('now');
     }
 
     /**
@@ -280,6 +277,6 @@ class Faq
      */
     public function onPreUpdate()
     {
-        $this->updated = new \DateTime('now');
+        $this->updated = new DateTime('now');
     }
 }

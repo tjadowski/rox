@@ -15,6 +15,8 @@
      */
 
     // group routes
+    $this->addRoute('group_start','group/:group_id:', 'GroupsController', 'showGroup');
+    $this->addRoute('group_new_post', 'group/:group_id:/new', 'GroupsController', 'newPost');
     $this->addRoute('group_acceptinvitation','group/:group_id:/acceptinvitation/:member_id:', 'GroupsController', 'acceptInvitation');
     $this->addRoute('group_acceptmember','group/:group_id:/acceptmember/:member_id:', 'GroupsController', 'acceptMember');
     $this->addRoute('group_banmember','group/:group_id:/banmember/:member_id:', 'GroupsController', 'banMember');
@@ -25,8 +27,11 @@
     $this->addRoute('group_delete','group/:group_id:/delete', 'GroupsController', 'delete');
     $this->addRoute('group_deleted','group/:group_id:/delete/true', 'GroupsController', 'delete');
     $this->addRoute('group_forum','group/:group_id:/forum', 'GroupsController', 'forum');
-    $this->addRoute('group_forum_thread','group/:group_id:/forum/:thread:', 'GroupsController', 'forum');
+    $this->addRoute('group_forum_pages','group/:group_id:/forum/page:page_id:', 'GroupsController', 'forum');
+    $this->addRoute('group_forum_thread','group/:group_id:/forum/s:thread:', 'GroupsController', 'forum');
     $this->addRoute('group_forum_thread_slash','group/:group_id:/forum/:thread:/', 'GroupsController', 'forum');
+    $this->addRoute('group_forum_thread_title','group/:group_id:/forum/s:thread:-:title:', 'GroupsController', 'forum');
+    $this->addRoute('group_forum_thread_title_slash','group/:group_id:/forum/:thread::title:/', 'GroupsController', 'forum');
     $this->addRoute('group_forum_action','group/:group_id:/forum/:thread:/:action:', 'GroupsController', 'forum');
     $this->addRoute('group_groupsettings','group/:group_id:/groupsettings', 'GroupsController', 'groupSettings');
     $this->addRoute('group_kickmember','group/:group_id:/kickmember/:member_id:', 'GroupsController', 'kickMember');
@@ -38,7 +43,6 @@
     $this->addRoute('group_members_paged','group/:group_id:/members/page/:page_number:', 'GroupsController', 'members');
     $this->addRoute('group_membersearch_ajax','group/:group_id:/membersearchajax/:search_term:', 'GroupsController', 'memberSearchAjax');
     $this->addRoute('group_membersettings','group/:group_id:/membersettings', 'GroupsController', 'memberSettings');
-    $this->addRoute('group_start','group/:group_id:', 'GroupsController', 'showGroup');
     $this->addRoute('group_wiki','group/:group_id:/wiki', 'GroupsController', 'wiki');
     $this->addRoute('group_realimg','group/realimg/:group_id:', 'GroupsController', 'realImg');
     $this->addRoute('group_thumbimg','group/thumbimg/:group_id:', 'GroupsController', 'thumbImg');
@@ -46,15 +50,14 @@
     $this->addRoute('groups_forums_overview','groups/forums', 'GroupsController', 'groupForumsOverview');
     $this->addRoute('groups_forums_overview_paged','groups/forums/:page_number:', 'GroupsController', 'groupForumsOverview');
     $this->addRoute('groups_mygroups','groups/mygroups', 'GroupsController', 'myGroups');
-    $this->addRoute('groups_overview','groups/search', 'GroupsController', 'search');
     $this->addRoute('groups_search','groups/search', 'GroupsController', 'search');
 
     // related groups routes
-    $this->addRoute('relatedgroup_select','groups/:group_id:/selectrelatedgroup', 'RelatedGroupsController', 'selectRelatedGroup');
-    $this->addRoute('relatedgroup_add','groups/:group_id:/addrelatedgroup/:related_id:', 'RelatedGroupsController', 'addRelatedGroup');
-    $this->addRoute('relatedgroup_selectdelete','groups/:group_id:/selectdeleterelatedgroup', 'RelatedGroupsController', 'selectdeleteRelatedGroup');
-    $this->addRoute('relatedgroup_delete','groups/:group_id:/deleterelatedgroup/:related_id:', 'RelatedGroupsController', 'deleteRelatedGroup');
-    $this->addRoute('relatedgroup_log','groups/:group_id:/relatedgroupsettings', 'RelatedGroupsController', 'showRelatedGroupLog');
+    $this->addRoute('relatedgroup_select','group/:group_id:/selectrelatedgroup', 'RelatedGroupsController', 'selectRelatedGroup');
+    $this->addRoute('relatedgroup_add','group/:group_id:/addrelatedgroup/:related_id:', 'RelatedGroupsController', 'addRelatedGroup');
+    $this->addRoute('relatedgroup_selectdelete','group/:group_id:/selectdeleterelatedgroup', 'RelatedGroupsController', 'selectdeleteRelatedGroup');
+    $this->addRoute('relatedgroup_delete','group/:group_id:/deleterelatedgroup/:related_id:', 'RelatedGroupsController', 'deleteRelatedGroup');
+    $this->addRoute('relatedgroup_log','group/:group_id:/relatedgroupsettings', 'RelatedGroupsController', 'showRelatedGroupLog');
 
     // member app routes
     $this->addRoute('members_profile', '/members/:username:', 'MembersController', 'index');
@@ -91,7 +94,7 @@
     $this->addRoute('admin_rights', 'admin/rights', 'AdminRightsController', 'assign');
     $this->addRoute('admin_rights_overview', 'admin/rights/overview', 'AdminRightsController', 'overview');
     $this->addRoute('admin_rights_members', 'admin/rights/list/members', 'AdminRightsController', 'listMembers');
-    $this->addRoute('admin_rights_member', 'admin/rights/list/members/:username:', 'AdminRightsController', 'listMembers');
+    $this->addRoute('admin_rights_member', 'admin/rights/list/member/:username:', 'AdminRightsController', 'listMembers');
     $this->addRoute('admin_rights_rights', 'admin/rights/list/rights', 'AdminRightsController', 'listRights');
     $this->addRoute('admin_rights_right', 'admin/rights/list/rights/:id:', 'AdminRightsController', 'listRights');
     $this->addRoute('admin_rights_create', 'admin/rights/create', 'AdminRightsController', 'create');
@@ -183,6 +186,8 @@
     $this->addRoute('activities_create', 'activities/create', 'ActivitiesController', 'editcreate');
     $this->addRoute('activities_upcoming_activities', 'activities/upcoming', 'ActivitiesController', 'upcomingActivities');
     $this->addRoute('activities_upcoming_activities_pages', 'activities/upcoming/page/:pageno:', 'ActivitiesController', 'upcomingActivities');
+    $this->addRoute('activities_upcoming_online_activities', 'activities/online', 'ActivitiesController', 'upcomingOnlineActivities');
+    $this->addRoute('activities_upcoming_online_activities_pages', 'activities/online/page/:pageno:', 'ActivitiesController', 'upcomingOnlineActivities');
     $this->addRoute('activities_past_activities', 'activities/past', 'ActivitiesController', 'pastActivities');
     $this->addRoute('activities_past_activities_pages', 'activities/past/page/:pageno:', 'ActivitiesController', 'pastActivities');
     $this->addRoute('activities_near_me', 'activities/nearme', 'ActivitiesController', 'activitiesNearMe');
@@ -192,53 +197,6 @@
     $this->addRoute('activities_edit', 'activities/:id:/edit', 'ActivitiesController', 'editcreate');
     $this->addRoute('activities_show', 'activities/:id:', 'ActivitiesController', 'show');
     $this->addRoute('activities_show_attendees', 'activities/:id:/attendees/page/:page:', 'ActivitiesController', 'show');
-
-    // suggestions feature
-    $this->addRoute('suggestions_about', 'suggestions/about', 'SuggestionsController', 'about');
-    $this->addRoute('suggestions', 'suggestions', 'SuggestionsController', 'suggestions');
-    $this->addRoute('suggestions_show', 'suggestions/:id:', 'SuggestionsController', 'show');
-    $this->addRoute('suggestions_view', 'suggestions/:id:/view', 'SuggestionsController', 'view');
-    $this->addRoute('suggestions_create', 'suggestions/create', 'SuggestionsController', 'editCreate');
-    $this->addRoute('suggestions_edit', 'suggestions/:id:/edit', 'SuggestionsController', 'editCreate');
-    $this->addRoute('suggestions_approvelist', 'suggestions/approve', 'SuggestionsController', 'approveList');
-    $this->addRoute('suggestions_approvelist_pages', 'suggestions/approve/page/:pageno:', 'SuggestionsController', 'approveList');
-    $this->addRoute('suggestions_approve', 'suggestions/:id:/approve', 'SuggestionsController', 'approve');
-    $this->addRoute('suggestions_discusslist', 'suggestions/discuss', 'SuggestionsController', 'discussList');
-    $this->addRoute('suggestions_discusslist_pages', 'suggestions/discuss/page/:pageno:', 'SuggestionsController', 'discussList');
-    $this->addRoute('suggestions_discuss', 'suggestions/:id:/discuss', 'SuggestionsController', 'discuss');
-    $this->addRoute('suggestions_discuss_reply', 'suggestions/:id:/discuss/reply', 'SuggestionsController', 'discussReply');
-    $this->addRoute('suggestions_optionslist', 'suggestions/addoptions', 'SuggestionsController', 'addOptionsList');
-    $this->addRoute('suggestions_optionslist_pages', 'suggestions/addoptions/page/:pageno:', 'SuggestionsController', 'addOptionsList');
-    $this->addRoute('suggestions_add_options', 'suggestions/:id:/addoptions', 'SuggestionsController', 'addOptions');
-    $this->addRoute('suggestions_add_options_reply', 'suggestions/:id:/addoptions/reply', 'SuggestionsController', 'addOptionsReply');
-    $this->addRoute('suggestions_add_options_edit', 'suggestions/:id:/addoptions/:optid:/edit', 'SuggestionsController', 'editOption');
-    $this->addRoute('suggestions_add_options_delete', 'suggestions/:id:/addoptions/:optid:/delete', 'SuggestionsController', 'deleteOption');
-    $this->addRoute('suggestions_add_options_restore', 'suggestions/:id:/addoptions/:optid:/restore', 'SuggestionsController', 'restoreOption');
-    $this->addRoute('suggestions_votelist', 'suggestions/vote', 'SuggestionsController', 'voteList');
-    $this->addRoute('suggestions_votelist_pages', 'suggestions/vote/page/:pageno:', 'SuggestionsController', 'voteList');
-    $this->addRoute('suggestions_vote', 'suggestions/:id:/vote', 'SuggestionsController', 'vote');
-    $this->addRoute('suggestions_exclude', 'suggestions/:id:/exclude', 'SuggestionsController', 'exclude');
-    $this->addRoute('suggestions_ranklist', 'suggestions/rank', 'SuggestionsController', 'rankList');
-    $this->addRoute('suggestions_ranklist_pages', 'suggestions/rank/page/:pageno:', 'SuggestionsController', 'rankList');
-    $this->addRoute('suggestions_rank', 'suggestions/:id:/rank', 'SuggestionsController', 'rank');
-    $this->addRoute('suggestions_options_implementing', 'suggestions/:id:/implementing/:optionid:', 'SuggestionsController', 'moveOptionToImplementing');
-    $this->addRoute('suggestions_options_implemented', 'suggestions/:id:/implemented/:optionid:', 'SuggestionsController', 'moveOptionToImplemented');
-    $this->addRoute('suggestions_implemented', 'suggestions/:id:/implemented', 'SuggestionsController', 'moveSuggestionToImplemented');
-    $this->addRoute('suggestions_upvote', 'suggestions/:optionid:/upvote', 'SuggestionsController', 'voteRanking');
-    $this->addRoute('suggestions_downvote', 'suggestions/:optionid:/downvote', 'SuggestionsController', 'voteRanking');
-    $this->addRoute('suggestions_rank_ajax', 'suggestions/ajax/:optionid:/:direction:', 'SuggestionsController', 'voteAjaxRanking');
-    $this->addRoute('suggestions_rejectedlist', 'suggestions/rejected', 'SuggestionsController', 'rejectedList');
-    $this->addRoute('suggestions_rejectedlist_pages', 'suggestions/rejected/page/:pageno:', 'SuggestionsController', 'rejectedList');
-    $this->addRoute('suggestions_rejected', 'suggestions/:id:/rejected', 'SuggestionsController', 'rejected');
-    $this->addRoute('suggestions_devlist', 'suggestions/dev', 'SuggestionsController', 'devList');
-    $this->addRoute('suggestions_devlist_pages', 'suggestions/dev/page/:pageno:', 'SuggestionsController', 'devList');
-    $this->addRoute('suggestions_dev', 'suggestions/:id:/dev', 'SuggestionsController', 'dev');
-    $this->addRoute('suggestions_resultslist', 'suggestions/results', 'SuggestionsController', 'resultsList');
-    $this->addRoute('suggestions_resultslist_pages', 'suggestions/results/page/:pageno:', 'SuggestionsController', 'resultsList');
-    $this->addRoute('suggestions_results', 'suggestions/:id:/results', 'SuggestionsController', 'results');
-    $this->addRoute('suggestions_team', 'suggestions/team', 'SuggestionsController', 'team');
-    $this->addRoute('suggestions_search_results', 'suggestions/search/:keyword:', 'SuggestionsController', 'search');
-    $this->addRoute('suggestions_search_results_page', 'suggestions/search/:keyword:/page/:pageno:', 'SuggestionsController', 'search');
 
     // searchmembers
     $this->addRoute('searchmembers', 'search', 'SearchController', 'searchMembers');
@@ -251,52 +209,11 @@
 
     $this->addRoute('searchmembers_username', 'search/members/username', 'SearchController', 'searchMemberUsernames');
 
-    // safety pages
-    $this->addRoute('safety', 'safety', 'SafetyController', 'safety');
-    $this->addRoute('safety_basics', 'safety/basics', 'SafetyController', 'safetyBasics');
-    $this->addRoute('safety_whattodo', 'safety/whattodo', 'SafetyController', 'safetyWhatToDo');
-    $this->addRoute('safety_tips', 'safety/tips', 'SafetyController', 'safetyTips');
-    $this->addRoute('safety_female', 'safety/female', 'SafetyController', 'safetyFemale');
-    $this->addRoute('safety_faq', 'safety/faq', 'SafetyController', 'safetyFaq');
-    $this->addRoute('safety_team', 'safety/team', 'SafetyController', 'safetyTeam');
-    $this->addRoute('safety_contact', 'feedback?IdCategory=2', 'SafetyController', 'safetyContact');
-
     // New Members Be Welcome
     $this->addRoute('newmembers', 'admin/newmembers', 'AdminNewMembersController', 'listMembers');
     $this->addRoute('newmembers_pages', 'admin/newmembers/page/:pageno:', 'AdminNewMembersController', 'listMembers');
     $this->addRoute('newmembers_local_greeting', 'admin/newmembers/local/:username:', 'AdminNewMembersController', 'composeMessage');
     $this->addRoute('newmembers_global_greeting', 'admin/newmembers/global/:username:', 'AdminNewMembersController', 'composeMessage');
-
-    // Trips
-    $this->addRoute('trips_all', 'trips/:type:/all', 'TripsController', 'tripsAll');
-    $this->addRoute('trips', 'trips', 'TripsController', 'trips');
-    $this->addRoute('trips_my_trips', 'trips/mytrips', 'TripsController', 'myTrips');
-    $this->addRoute('trips_my_trips_pages', 'trips/mytrips/page/:pageno:', 'TripsController', 'myTrips');
-    $this->addRoute('trips_show', 'trips/:id:/show', 'TripsController', 'showTrip');
-    $this->addRoute('trip_show_username', 'trip/show/:username:', 'TripController', 'showTripsForUsername');
-    $this->addRoute('trip_show_usernamepages', 'trip/show/:username:/page/:pageno:', 'TripController', 'showTripsForUsername');
-    $this->addRoute('trips_create', 'trips/create', 'TripsController', 'createTrip');
-    $this->addRoute('trips_upcoming', 'trips/upcoming', 'TripsController', 'upcomingTrips');
-    $this->addRoute('trips_upcoming_trips_pages', 'trips/upcoming/page/:pageno:', 'TripsController', 'upcomingTrips');
-    $this->addRoute('trips_past_trips', 'trips/past', 'TripsController', 'pastTrips');
-    $this->addRoute('trips_past_trips_pages', 'trips/past/page/:pageno:', 'TripsController', 'pastTrips');
-    $this->addRoute('trips_near_me', 'trips/nearme', 'TripsController', 'tripsNearMe');
-    $this->addRoute('trips_near_me_pages', 'trips/nearme/page/:pageno:', 'TripsController', 'tripsNearMe');
-    $this->addRoute('trips_show', 'trips/:id:', 'TripsController', 'show');
-    $this->addRoute('trips_edit', 'trips/:id:/edit', 'TripsController', 'editTrip');
-    $this->addRoute('trip_delete', 'trip/:id:/delete', 'TripController', 'deleteTrip');
-    $this->addRoute('trips_search', 'trips/search', 'TripsController', 'search');
-    $this->addRoute('trips_search_results', 'trips/search/:keyword:', 'TripsController', 'search');
-    $this->addRoute('trips_search_results_pages', 'trips/search/:keyword:/page/:pageno:', 'TripsController', 'search');
-    $this->addRoute('trips_add_location', 'trips/addlocation/:number:', 'TripsController', 'addLocation');
-    $this->addRoute('trips_empty', 'trips/empty', 'TripsController', 'emptyPage');
-
-// $this->addRoute('trip_numerical', 'trip/:tripid:', 'TripController', 'showSingleTrip');
-// $this->addRoute('trip_create', 'trip/create', 'TripController', 'createTrip');
-// $this->addRoute('trip_edit', 'trip/edit/:tripid:', 'TripController', 'editTrip');
-
-    // Update statistics
-    $this->addRoute('updatestats', 'about/updatestats', 'AboutController', 'updateStatistics');
 
     // Data retention (#1885)
     $this->addRoute('dataretention', 'members/dataretention', 'MembersController', 'dataRetention');
@@ -305,5 +222,8 @@
     $this->addRoute('login_message_close', 'close/:id:', 'LoginController', 'close');
 
     // Terms of use
-    $this->addRoute('terms_french', 'terms', 'AboutController', 'termsOfUse');
-    $this->addRoute('terms_language', 'terms/:language:', 'AboutController', 'termsOfUse');
+    $this->addRoute('old_terms_french', 'terms/old/fr', 'AboutController', 'termsOfUse');
+    $this->addRoute('old_terms_language', 'terms/old/:locale:', 'AboutController', 'termsOfUse');
+
+    // Language switch (done in new code; dummy to have route available in members.ctrl.php when changing the language preference)
+    $this->addRoute('rox_in_language', 'rox/in/:language:', '', '');

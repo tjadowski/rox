@@ -31,16 +31,12 @@ $words = new MOD_words();
 
 $request = PRequest::get()->request;
 $uri = implode('/', $request);
-$groupsforum = ($request[0] == 'groups' && is_numeric($request[1])) ? $request[1] : false;
-
-if (isset($this->suggestionsGroupId)) {
-    $groupsforum = $this->suggestionsGroupId;
-}
+$groupsforum = ($request[0] == 'group' && is_numeric($request[1])) ? $request[1] : false;
 
 $vars =& PPostHandler::getVars($callbackId);
 
 ?>
-<? /* obsolete javascript?
+<?php /* obsolete javascript?
 <script type="text/javascript" src="script/blog_suggest.js"></script>
 <script type="text/javascript" src="script/forums_suggest.js"></script>
 */ ?>
@@ -49,19 +45,6 @@ $vars =& PPostHandler::getVars($callbackId);
     <div class="col-12">
 
     <?php
-    if ($navichain_items = $boards->getNaviChain()) {
-        foreach ($navichain_items as $link => $title) {
-            $navichain .= '<a href="' . $link . '">' . $title . '</a> :: ';
-        }
-        $navichain .= '<a href="' . $boards->getBoardLink() . '">' . $boards->getBoardName() . '</a>';
-    } else {
-        $navichain = '';
-    }
-
-    if ($navichain != '') {
-        echo '<p class="h4 gray">' . $navichain . '</p>';
-    }
-
     echo '<h3>';
     if ($allow_title) { // New Topic
         if ($edit) {
@@ -73,7 +56,7 @@ $vars =& PPostHandler::getVars($callbackId);
         if ($edit) {
             echo $words->getFormatted("forum_edit_post");
         } else {
-            echo $words->getFormatted("forum_reply_title") . ' &quot;<i>' . $topic->topicinfo->title . '</i>&quot;';
+            echo $words->getFormatted("forum_reply_title") . ' &quot;<i>' . strip_tags($topic->topicinfo->title) . '</i>&quot;';
         }
     }
     echo '</h3>';
@@ -101,17 +84,16 @@ $vars =& PPostHandler::getVars($callbackId);
         ?>
 
 <div class="col-12">
-        <?
+        <?php
         if (isset($allow_title) && $allow_title) {
 
             ?>
             <!-- input title -->
-                <div class="input-group mb-2">
-                    <div class="input-group-prepend h5 m-0" id="forumaddtitle">
-                        <div class="input-group-text"><label class="m-0"
+                <div class="form-group mb-2">
+                        <label class="m-0"
                                                              for="topic_title"><?php echo $words->getFormatted("forum_label_topicTitle"); ?></label>
-                        </div>
-                    </div>
+
+
                     <?php
                     $topic_titletrad = "";
                     if (isset($vars['topic_title'])) {
@@ -127,11 +109,11 @@ $vars =& PPostHandler::getVars($callbackId);
                            value="<?php echo $topic_titletrad; ?>" aria-describedby="forumaddtitle">
             </div>
 
-        <? } ?>
+        <?php } ?>
     </div>
     <div class="col-12 mb-2">
-
-            <label for="topic_text" class="sr-only"><?php echo $words->getFormatted("forum_label_text"); ?></label>
+        <div class="form-group">
+            <label for="topic_text"><?php echo $words->getFormatted("forum_label_text"); ?></label>
 
             <textarea name="topic_text" id="topic_text" class="form-control editor" rows="10" style="min-height: 10em;" placeholder="<?= $words->get('forum.post.placeholder'); ?>"><?php
                 if (isset($void_string)) {
@@ -147,19 +129,18 @@ $vars =& PPostHandler::getVars($callbackId);
             } else {
                 if (isset($vars['IdGroup']) && $vars['IdGroup'] != 0 && is_numeric($vars['IdGroup'])) {
                     echo '<input type="hidden" name="IdGroup" value="' . intval($vars['IdGroup']) . '">';
-                } else {
-                    echo '<input type="hidden" name="IdGroup" value="0">';
                 }
             } ?>
         </div>
-        <div class="col-12 col-md-4 order-1 order-md-2 form-inline mb-2">
-            <div class="form-check">
-                <input type="checkbox" name="NotifyMe" id="NotifyMe" class="form-check-input" <?php echo $notifymecheck ?>>
-                <label for="NotifyMe" class="form-check-label"><?php echo $words->getFormatted("forum_NotifyMeForThisThread") ?></label>
-            </div>
+    </div>
+    <div class="col-12 col-md-4 order-1 order-md-2 mb-1 px-1">
+        <div class="form-check">
+            <input type="checkbox" name="NotifyMe" id="NotifyMe" class="form-check-input" <?php echo $notifymecheck ?>>
+            <label for="NotifyMe" class="form-check-label"><?php echo $words->getFormatted("forum_NotifyMeForThisThread") ?></label>
         </div>
+    </div>
 
-        <div class="col-12 col-md-4 order-2 order-md-3 form-inline mb-2">
+        <div class="col-12 col-md-4 order-2 order-md-3 mb-1 px-1">
                     <legend class="sr-only"><?= $words->getFormatted("forum_label_visibility") ?></legend>
                     <?php
                     // visibility can only be set on groups with 'VisiblePosts' set to 'yes'.
@@ -190,7 +171,7 @@ $vars =& PPostHandler::getVars($callbackId);
         </div>
 
             <div class="col-12 col-md-4 order-3 order-md-1 mb-2">
-                <input type="submit" class="btn btn-primary px-5" value="<?php
+                <input type="submit" class="btn btn-primary" value="<?php
                 if ($allow_title) { // New Topic
                     if ($edit) {
                         echo $words->getFormatted("forum_label_update_topic");
@@ -211,4 +192,4 @@ $vars =& PPostHandler::getVars($callbackId);
     </form>
     </div>
 </div>
-<script src="script/ckeditor.js"></script>
+

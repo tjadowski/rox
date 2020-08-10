@@ -6,6 +6,7 @@ use App\Form\CustomDataClass\SearchFormRequest;
 use App\Form\LoginFormType;
 use App\Form\SearchFormType;
 use App\Model\StatisticsModel;
+use RoxPostHandler;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,15 +18,13 @@ class HomeController extends AbstractController
     /**
      * @Route("/", name="homepage")
      *
-     * @param StatisticsModel $statisticsModel
-     *
      * @return Response
      */
     public function indexAction(StatisticsModel $statisticsModel)
     {
         $member = $this->getUser();
         if ($member) {
-            return $this->forward(LandingController::class.'::indexAction');
+            return $this->forward(LandingController::class . '::indexAction');
         }
 
         $loginForm = $this->createForm(LoginFormType::class, null, [
@@ -35,7 +34,7 @@ class HomeController extends AbstractController
 
         // Find all members around 100km of the given location
         $searchFormRequest = new SearchFormRequest($this->getDoctrine()->getManager());
-        $searchFormRequest->showmap = true;
+        $searchFormRequest->show_map = true;
         $searchFormRequest->accommodation_neverask = true;
         $searchFormRequest->inactive = true;
         $searchFormRequest->distance = 100;
@@ -55,8 +54,8 @@ class HomeController extends AbstractController
             ->setMethod('POST')
             ->getForm();
 
-        $statistics = $statisticsModel->getStatistics();
-        $roxPostHandler = new \RoxPostHandler();
+        $statistics = $statisticsModel->getStatisticsHomepage();
+        $roxPostHandler = new RoxPostHandler();
         $roxPostHandler->setClasses([
             'SignupController',
         ]);

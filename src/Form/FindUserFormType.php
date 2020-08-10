@@ -10,9 +10,6 @@ use Symfony\Component\Form\FormBuilderInterface;
 class FindUserFormType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -25,6 +22,8 @@ class FindUserFormType extends AbstractType
                     'placeholder' => 'placeholder.username.part',
                 ],
             ])
-            ->add('reset.password', SubmitType::class);
+            ->add('find_member', SubmitType::class, [
+                'label' => 'label.find.member',
+            ]);
     }
 }

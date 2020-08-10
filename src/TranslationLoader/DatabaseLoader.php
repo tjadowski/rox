@@ -4,6 +4,7 @@ namespace App\TranslationLoader;
 
 use App\Entity\Word;
 use Doctrine\ORM\EntityManager;
+use Exception;
 use Symfony\Component\Translation\Loader\LoaderInterface;
 use Symfony\Component\Translation\MessageCatalogue;
 
@@ -29,24 +30,11 @@ class DatabaseLoader implements LoaderInterface
      */
     public function load($resource, $locale, $domain = 'messages')
     {
-        /** @var Word $translations */
-        $translations = $this->em->getRepository(Word::class)->findBy(['shortCode' => $locale]);
-
-        $messages = [];
-        $validators = [];
-        /** @var Word $translation */
-        foreach ($translations as $translation) {
-            // hack for validations messages
-            $code = $translation->getCode();
-            if ($this->startsWith($code, 'search.location')) {
-                $validators[$code] = $translation->getSentence();
-            }
-            $messages[$code] = $translation->getSentence();
+        if ('en' === $locale) {
+            return $this->loadEnglishOriginals($domain);
         }
 
-        $catalogue = new MessageCatalogue($locale, ['messages' => $messages, 'validators' => $validators]);
-
-        return $catalogue;
+        return $this->loadTranslationsForLocale($locale, $domain);
     }
 
     public function startsWith($string, $startString)
@@ -54,5 +42,89 @@ class DatabaseLoader implements LoaderInterface
         $len = \strlen($startString);
 
         return substr($string, 0, $len) === $startString;
+    }
+
+    /**
+     * @param Word[] $originals
+     * @param string $code
+     * @param mixed  $lastPos
+     *
+     * @throws Exception
+     *
+     * @return array
+     */
+    private function findOriginal($originals, $code, $lastPos)
+    {
+        $i = $lastPos;
+        $original = false;
+        while (!$original && $i < \count($originals)) {
+            if ($originals[$i]->getCode() === $code) {
+                $original = $originals[$i];
+            }
+            ++$i;
+        }
+        if (false === $original) {
+            // we didn't find any original for this code (weird!), so assume we keep the last pos for the next try
+            $i = $lastPos;
+        }
+
+        return [$original, $i];
+    }
+
+    private function getTranslationsForLocale($locale, $domain)
+    {
+        return $this->em->getRepository(Word::class)
+            ->findBy(['shortCode' => $locale, 'domain' => $domain], ['code' => 'ASC']);
+    }
+
+    private function loadTranslationsForLocale($locale, $domain)
+    {
+        /** @var Word[] $translations */
+        $translations = $this->getTranslationsForLocale($locale, $domain);
+
+        /** @var Word[] $originals */
+        $originals = $this->getTranslationsForLocale('en', $domain);
+
+        $lastPos = 0;
+        $messages = [];
+        foreach ($translations as $translation) {
+            $code = $translation->getCode();
+            $sentence = $translation->getSentence();
+
+            list($original, $lastPos) = $this->findOriginal($originals, $code, $lastPos);
+            if (false !== $original) {
+                if ($original->getMajorUpdate() > $translation->getUpdated()) {
+                    // If english text has been updated and marked as major use the english text
+                    $messages[$code] = $original->getSentence();
+                } else {
+                    $messages[$code] = $sentence;
+                }
+            }
+        }
+
+        $catalogue = new MessageCatalogue($locale, [
+            $domain => $messages,
+        ]);
+
+        return $catalogue;
+    }
+
+    private function loadEnglishOriginals($domain)
+    {
+        /** @var Word[] $translations */
+        $translations = $this->getTranslationsForLocale('en', $domain);
+
+        $messages = [];
+        foreach ($translations as $translation) {
+            $code = $translation->getCode();
+            $sentence = $translation->getSentence();
+            $messages[$code] = $sentence;
+        }
+
+        $catalogue = new MessageCatalogue('en', [
+            $domain => $messages,
+        ]);
+
+        return $catalogue;
     }
 }

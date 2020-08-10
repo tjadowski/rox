@@ -24,7 +24,7 @@ class SearchFormRequest
     public $location;
 
     /**
-     * @var integer
+     * @var int
      * @Assert\NotNull(message="search.location.dropdown", groups={"text-search"})
      */
     public $location_geoname_id;
@@ -67,39 +67,45 @@ class SearchFormRequest
      */
     public $sw_longitude;
 
-    /** @var boolean */
+    /** @var bool */
     public $accommodation_anytime = true;
 
-    /** @var boolean */
-    public $accommodation_dependonrequest = true;
-
-    /** @var boolean */
+    /** @var bool */
     public $accommodation_neverask = false;
 
-    /** @var boolean */
-    public $showmap = false;
+    /** @var bool */
+    public $no_smoking = false;
 
-    /** @var boolean */
-    public $showadvanced = false;
+    /** @var bool */
+    public $no_alcohol = false;
+
+    /** @var bool */
+    public $no_drugs = false;
+
+    /** @var bool */
+    public $show_map = false;
+
+    /** @var bool */
+    public $show_options = true;
 
     /**
-     * @var integer
+     * @var int
      *
      * @Assert\Choice({ -1, 0, 5, 10, 15, 20, 50, 100, 200})
      */
     public $distance = 20;
 
     /**
-     * @var integer
+     * @var int
      */
     public $showOnMap = false;
 
     /**
-     * @var boolean
+     * @var bool
      */
-    public $showAdvanced = false;
+    public $showOptions = true;
 
-    /** @var integer */
+    /** @var int */
     public $can_host = 1;
 
     /** @var PersistentCollection */
@@ -108,34 +114,46 @@ class SearchFormRequest
     /** @var PersistentCollection */
     public $languages;
 
-    /** @var integer */
+    /** @var int */
     public $min_age;
 
-    /** @var integer */
+    /** @var int */
     public $max_age;
 
     /** @var string */
     public $gender;
 
-    /** @var boolean */
-    public $inactive;
-
-    /** @var boolean */
+    /** @var bool */
     public $offerdinner;
 
-    /** @var boolean */
+    /** @var bool */
     public $offertour;
 
-    /** @var boolean */
+    /** @var bool */
     public $accessible;
+
+    /** @var bool */
+    public $profile_picture = true;
+
+    /** @var bool */
+    public $about_me = true;
+
+    /** @var bool */
+    public $has_comments;
 
     /** @var string */
     public $keywords;
 
-    /** @var integer */
+    /** @var int Last Login in months */
+    public $last_login = 12;
+
+    /** @var int */
     public $order = 6;
 
-    /** @var integer */
+    /** @var int */
+    public $direction = 1;
+
+    /** @var int */
     public $items = 20;
 
     /**
@@ -145,8 +163,6 @@ class SearchFormRequest
 
     /**
      * SearchFormRequest constructor.
-     *
-     * @param ObjectManager $em
      */
     public function __construct(ObjectManager $em)
     {
@@ -180,9 +196,19 @@ class SearchFormRequest
         return false;
     }
 
+
+    /**
+     * @Assert\IsTrue(message="search.accommodation.invalid")
+     */
+    public function isAccommodationValid()
+    {
+//        return (false === $this->accommodation_yes && false === $this->accommodation_no);
+        return true;
+    }
+
     public static function fromRequest(Request $request, ObjectManager $em)
     {
-        $searchFormRequest = new self($em);
+        $formRequest = new self($em);
         $data = [];
         if ($request->query->has('tiny')) {
             $data = $request->query->get('tiny');
@@ -198,60 +224,46 @@ class SearchFormRequest
         }
         if (empty($data)) {
             // if no data was given return a default object
-            return $searchFormRequest;
+            return $formRequest;
         }
 
-        $searchFormRequest->location = self::_getElement($data, 'location', '');
-        $searchFormRequest->accommodation_anytime = '1' === self::_getElement(
-            $data,
-            'accommodation_anytime',
-            '0'
-        ) ? true : false;
-        $searchFormRequest->accommodation_dependonrequest = '1' === self::_getElement(
-            $data,
-            'accommodation_dependonrequest',
-            '0'
-        ) ? true : false;
-        $searchFormRequest->accommodation_neverask = '1' === self::_getElement(
-            $data,
-            'accommodation_neverask',
-            '0'
-        ) ? true : false;
-        $searchFormRequest->can_host = self::_getElement($data, 'can_host', 1);
-        $searchFormRequest->distance = self::_getElement($data, 'distance', 20);
-        $searchFormRequest->keywords = self::_getElement($data, 'keywords', '');
-        $searchFormRequest->page = $request->query->get('page', 1);
-        $searchFormRequest->groups = self::_getElement($data, 'groups', []);
-        $searchFormRequest->languages = self::_getElement($data, 'languages', []);
-        $searchFormRequest->inactive = '1' === self::_getElement(
-            $data,
-            'inactive',
-            '0'
-        ) ? true : false;
+        $formRequest->location = self::get($data, 'location', '');
+        $formRequest->accommodation_anytime = self::get($data, 'accommodation_anytime', '1') ? true : false;
+        $formRequest->accommodation_neverask = self::get($data, 'accommodation_neverask', '0') ? true : false;
+        $formRequest->can_host = self::get($data, 'can_host', 1);
+        $formRequest->distance = self::get($data, 'distance', 20);
+        $formRequest->keywords = self::get($data, 'keywords', '');
+        $formRequest->page = $request->query->get('page', 1);
+        $formRequest->groups = self::get($data, 'groups', []);
+        $formRequest->languages = self::get($data, 'languages', []);
+        $formRequest->last_login = self::get($data, 'last_login', 12);
+        $formRequest->location_geoname_id = self::get($data, 'location_geoname_id', null);
+        $formRequest->location_latitude = self::get($data, 'location_latitude', null);
+        $formRequest->location_longitude = self::get($data, 'location_longitude', null);
+        $formRequest->min_age = self::get($data, 'min_age', null);
+        $formRequest->max_age = self::get($data, 'max_age', null);
+        $formRequest->gender = self::get($data, 'gender', null);
+        $formRequest->order = self::get($data, 'order', SearchModel::ORDER_ACCOM);
+        $formRequest->items = self::get($data, 'items', 10);
+        $formRequest->show_map = self::get($data, 'show_map', '0') ? true : false;
+        $formRequest->showOnMap = self::get($data, 'showOnMap', false);
+        $formRequest->showOptions = self::get($data, 'show_options', false);
+        $formRequest->offerdinner = '1' === self::get($data, 'offerdinner', '0');
+        $formRequest->offertour = '1' === self::get($data, 'offertour', '0');
+        $formRequest->accessible = '1' === self::get($data, 'accessible', '0');
+        $formRequest->profile_picture = '1' === self::get($data, 'profile_picture', '0');
+        $formRequest->accessible = '1' === self::get($data, 'about_me', '0');
+        $formRequest->no_smoking = '1' === self::get($data, 'no_smoking', '0');
+        $formRequest->no_alcohol = '1' === self::get($data, 'no_alcohol', '0');
+        $formRequest->no_drugs = '1' === self::get($data, 'no_drugs', '0');
+        $formRequest->has_comments = '1' === self::get($data, 'has_comments', '0');
 
-        $searchFormRequest->location_geoname_id = self::_getElement($data, 'location_geoname_id', null);
-        $searchFormRequest->location_latitude = self::_getElement($data, 'location_latitude', null);
-        $searchFormRequest->location_longitude = self::_getElement($data, 'location_longitude', null);
-        $searchFormRequest->min_age = self::_getElement($data, 'min_age', null);
-        $searchFormRequest->max_age = self::_getElement($data, 'max_age', null);
-        $searchFormRequest->gender = self::_getElement($data, 'gender', null);
-        $searchFormRequest->order = self::_getElement($data, 'order', SearchModel::ORDER_ACCOM);
-        $searchFormRequest->items = self::_getElement($data, 'items', 10);
-        $searchFormRequest->showmap = self::_getElement($data, 'showmap', '0') ? true : false;
-        $searchFormRequest->showOnMap = self::_getElement($data, 'showOnMap', false);
-        $searchFormRequest->showAdvanced = self::_getElement($data, 'showadvanced', false);
-        $searchFormRequest->offerdinner = '1' === self::_getElement($data, 'offerdinner', '0') ? true : false;
+        $formRequest->ne_latitude = self::get($data, 'ne-latitude', null);
+        $formRequest->ne_longitude = self::get($data, 'ne-longitude', null);
+        $formRequest->sw_latitude = self::get($data, 'sw-latitude', null);
+        $formRequest->sw_longitude = self::get($data, 'sw-longitude', null);
 
-        $searchFormRequest->offertour = '1' === self::_getElement($data, 'offertour', '0') ? true : false;
-
-        $searchFormRequest->accessible = '1' === self::_getElement($data, 'accessible', '0') ? true : false;
-
-        $searchFormRequest->ne_latitude = self::_getElement($data, 'ne-latitude', null);
-        $searchFormRequest->ne_longitude = self::_getElement($data, 'ne-longitude', null);
-        $searchFormRequest->sw_latitude = self::_getElement($data, 'sw-latitude', null);
-        $searchFormRequest->sw_longitude = self::_getElement($data, 'sw-longitude', null);
-
-        return $searchFormRequest;
+        return $formRequest;
     }
 
     public static function determineValidationGroups(FormInterface $form)
@@ -265,7 +277,7 @@ class SearchFormRequest
         return ['text-search'];
     }
 
-    private static function _getElement($data, $index, $default)
+    private static function get($data, $index, $default)
     {
         return (isset($data[$index])) ? $data[$index] : $default;
     }

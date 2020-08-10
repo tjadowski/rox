@@ -3,14 +3,17 @@
 namespace App\Controller;
 
 use App\Doctrine\AccommodationType;
+use App\Entity\Activity;
 use App\Entity\Member;
-use App\Entity\MemberPreference;
+use App\Entity\Notification;
 use App\Entity\Preference;
 use App\Form\CustomDataClass\SearchFormRequest;
 use App\Form\SearchFormType;
 use App\Model\CommunityNewsModel;
 use App\Model\DonateModel;
 use App\Model\LandingModel;
+use App\Repository\ActivityRepository;
+use App\Repository\NotificationRepository;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Twig\Environment;
 
 class LandingController extends AbstractController
 {
@@ -32,21 +36,19 @@ class LandingController extends AbstractController
     }
 
     /**
-     * @param Request $request
-     *
      * @Route( "/widget/messages", name="/widget/messages")
      *
      * @return Response
      */
-    public function showMessagesAction(Request $request)
+    public function getMessages(Request $request)
     {
+        /** @var Member $member */
         $member = $this->getUser();
         $unread = $request->query->get('unread', '0');
 
         $preferenceRepository = $this->getDoctrine()->getRepository(Preference::class);
         /** @var Preference $preference */
         $preference = $preferenceRepository->findOneBy(['codename' => Preference::MESSAGE_AND_REQUEST_FILTER]);
-        /** @var MemberPreference $memberPreference */
         $memberPreference = $member->getMemberPreference($preference);
         if ('1' === $unread) {
             $memberPreference->setValue('Unread');
@@ -57,7 +59,7 @@ class LandingController extends AbstractController
         $em->persist($memberPreference);
         $em->flush();
 
-        $messages = $this->landingModel->getMessages($member, $unread, 4);
+        $messages = $this->landingModel->getMessagesAndRequests($member, $unread, 5);
 
         $content = $this->render('landing/widget/messages.html.twig', [
             'messages' => $messages,
@@ -71,8 +73,9 @@ class LandingController extends AbstractController
      *
      * @return Response
      */
-    public function showNotificationsAction()
+    public function getNotifications()
     {
+        /** @var Member $member */
         $member = $this->getUser();
 
         $notifications = $this->landingModel->getNotifications($member, 5);
@@ -85,23 +88,21 @@ class LandingController extends AbstractController
     }
 
     /**
-     * @param Request $request
-     *
      * @Route( "/widget/threads", name="/widget/threads")
      *
      * @return Response
      */
-    public function showThreadsAction(Request $request)
+    public function getThreads(Request $request)
     {
         $groups = $request->query->get('groups', '0');
         $forum = $request->query->get('forum', '0');
         $following = $request->query->get('following');
 
+        /** @var Member $member */
         $member = $this->getUser();
         $preferenceRepository = $this->getDoctrine()->getRepository(Preference::class);
         /** @var Preference $preference */
         $preference = $preferenceRepository->findOneBy(['codename' => Preference::FORUM_FILTER]);
-        /** @var MemberPreference $memberPreference */
         $memberPreference = $member->getMemberPreference($preference);
         $value = '';
         if ('1' === $groups) {
@@ -119,11 +120,9 @@ class LandingController extends AbstractController
         $em->flush();
         $threads = $this->landingModel->getThreads($member, $groups, $forum, $following, 5);
 
-        $content = $this->render('landing/widget/forums.html.twig', [
+        return $this->render('landing/widget/forums.html.twig', [
             'threads' => $threads,
         ]);
-
-        return $content;
     }
 
     /**
@@ -133,10 +132,12 @@ class LandingController extends AbstractController
      *
      * @return Response
      */
-    public function showActivitiesAction()
+    public function getActivities(Request $request)
     {
+        /** @var Member $member */
         $member = $this->getUser();
-        $activities = $this->landingModel->getActivities($member);
+        $online = $request->query->get('online', '0');
+        $activities = $this->landingModel->getUpcomingActivities($member, $online);
 
         $content = $this->render('landing/widget/activities.html.twig', [
             'activities' => $activities,
@@ -148,17 +149,14 @@ class LandingController extends AbstractController
     /**
      * @Route( "/widget/accommodation", name="/widget/accommodation")
      *
-     * @param Request $request
-     *
      * @return Response
      */
-    public function setAccommodationAction(Request $request)
+    public function setAccommodationAction(Request $request, Environment $twig)
     {
         $accommodation = $request->request->get('accommodation');
 
         switch ($accommodation) {
             case AccommodationType::YES:
-            case AccommodationType::MAYBE:
             case AccommodationType::NO:
                 $valid = true;
                 break;
@@ -166,17 +164,18 @@ class LandingController extends AbstractController
                 $valid = false;
         }
 
+        /** @var Member $member */
         $member = $this->getUser();
         if ($valid) {
             $member = $this->landingModel->updateMemberAccommodation($member, $accommodation);
         }
 
         // we need raw HTML and no response therefore we do not use the render method of the controller
-        $profilePictureWithAccommodation = $this->container->get('twig')->render('landing/widget/profilepicturewithaccommodation.html.twig', [
+        $profilePictureWithAccommodation = $twig->render('landing/widget/profilepicturewithaccommodation.html.twig', [
             'member' => $member,
         ]);
 
-        $accommodationHtml = $this->container->get('twig')->render('landing/widget/accommodation.html.twig', [
+        $accommodationHtml = $twig->render('landing/widget/accommodation.html.twig', [
             'member' => $member,
         ]);
 
@@ -191,19 +190,17 @@ class LandingController extends AbstractController
      *
      * @Route("/", name="landingpage")
      *
-     * @param CommunityNewsModel $communityNewsModel
-     * @param DonateModel        $donateModel
-     *
      * @throws AccessDeniedException
      *
      * @return Response
      */
     public function indexAction(CommunityNewsModel $communityNewsModel, DonateModel $donateModel)
     {
-        if (!$this->get('security.authorization_checker')->isGranted('IS_AUTHENTICATED_FULLY')) {
+        if (!$this->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
             throw $this->createAccessDeniedException();
         }
 
+        /** @var Member $member */
         $member = $this->getUser();
         $campaignDetails = $donateModel->getStatForDonations();
 
@@ -225,27 +222,53 @@ class LandingController extends AbstractController
 
         $preference = $preferenceRepository->findOneBy(['codename' => Preference::FORUM_FILTER]);
         $forumFilter = $member->getMemberPreferenceValue($preference);
+
+        $preference = $preferenceRepository->findOneBy(['codename' => Preference::SHOW_ONLINE_ACTIVITIES]);
+        $onlineActivities = ('Yes' === $member->getMemberPreferenceValue($preference)) ? 1 : 0;
+
         $content = $this->render('landing/landing.html.twig', [
-                'title' => 'BeWelcome',
-                'searchLocation' => $searchHomeLocation->createView(),
-                'tinySearch' => $searchGotoLocation->createView(),
-                'campaign' => [
-                    'year' => $campaignDetails->year,
-                    'yearNeeded' => $campaignDetails->YearNeededAmount,
-                    'yearDonated' => $campaignDetails->YearDonation,
-                ],
-                'travellers' => $travellersInArea,
-                'communityNews' => $latestNews,
-                'messageFilter' => $messageFilter,
-                'forumFilter' => $forumFilter,
+            'title' => 'BeWelcome',
+            'searchLocation' => $searchHomeLocation->createView(),
+            'tinySearch' => $searchGotoLocation->createView(),
+            'campaign' => [
+                'year' => $campaignDetails->year,
+                'yearNeeded' => $campaignDetails->YearNeededAmount,
+                'yearDonated' => $campaignDetails->YearDonation,
+            ],
+            'travellers' => $travellersInArea,
+            'communityNews' => $latestNews,
+            'messageFilter' => $messageFilter,
+            'forumFilter' => $forumFilter,
+            'onlineActivities' => $onlineActivities,
+            'notificationCount' => $this->getUncheckedNotificationsCount($member),
+            'activityCount' => $this->getUpcomingAroundLocationCount($member, $onlineActivities),
         ]);
 
         return $content;
     }
 
+    protected function getUncheckedNotificationsCount(Member $member)
+    {
+        /** @var NotificationRepository $notificationRepository */
+        $notificationRepository = $this->getDoctrine()->getRepository(Notification::class);
+
+        return $notificationRepository->getUncheckedNotificationsCount($member);
+    }
+
     /**
-     * @param Member $member
+     * @param mixed $showOnlineActivities
      *
+     * @return int
+     */
+    private function getUpcomingAroundLocationCount(Member $member, $showOnlineActivities)
+    {
+        /** @var ActivityRepository $activityRepository */
+        $activityRepository = $this->getDoctrine()->getRepository(Activity::class);
+
+        return $activityRepository->getUpcomingAroundLocationCount($member, $showOnlineActivities);
+    }
+
+    /**
      * @return SearchFormRequest
      */
     private function getSearchHomeLocationRequest(Member $member)

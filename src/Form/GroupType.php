@@ -8,13 +8,11 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class GroupType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -34,24 +32,41 @@ class GroupType extends AbstractType
                     'placeholder' => 'placeholder.group.description',
                     'class' => 'editor mb-1',
                 ],
-            ])
-            ->add('type', ChoiceType::class, [
-                'choices' => [
-                    'label.group.join.public' => 'Public',
-                    'label.group.join.approve' => 'NeedAcceptance',
-                ],
-                'expanded' => true,
-                'multiple' => false,
-                'label' => 'headline.group.join',
-            ])
+            ]);
+        // \todo check if there is a better way to do this without compromising translation extraction
+        if ($options['allowInvitationOnly']) {
+            $formBuilder
+                ->add('type', ChoiceType::class, [
+                    'choices' => [
+                        'groupsjoinpublic' => 'Public',
+                        'groupsjoinapproved' => 'NeedAcceptance',
+                        'groupsjoininvited' => 'NeedInvitation',
+                    ],
+                    'expanded' => true,
+                    'multiple' => false,
+                    'label' => 'groupspublicstatusheading',
+                ]);
+        } else {
+            $formBuilder
+                ->add('type', ChoiceType::class, [
+                    'choices' => [
+                        'groupsjoinpublic' => 'Public',
+                        'groupsjoinapproved' => 'NeedAcceptance',
+                    ],
+                    'expanded' => true,
+                    'multiple' => false,
+                    'label' => 'groupspublicstatusheading',
+                ]);
+        }
+        $formBuilder
             ->add('membersOnly', ChoiceType::class, [
                 'choices' => [
-                    'label.group.posts.invisible' => 'Yes',
-                    'label.group.posts.visible' => 'No',
+                    'groupsvisibleposts' => 'Yes',
+                    'groupsinvisibleposts' => 'No',
                 ],
                 'expanded' => true,
                 'multiple' => false,
-                'label' => 'headline.group.posts',
+                'label' => 'groupsvisiblepostsheading',
             ])
             ->add('picture', FileType::class, [
                 'label' => 'label.group.picture',
@@ -68,5 +83,15 @@ class GroupType extends AbstractType
                 ],
             ])
         ;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function configureOptions(OptionsResolver $resolver)
+    {
+        $resolver->setDefaults([
+            'allowInvitationOnly' => false,
+        ]);
     }
 }

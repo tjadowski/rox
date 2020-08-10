@@ -56,7 +56,7 @@ class RelatedGroupsController extends RoxControllerBase
     {
         if (!($vars = $this->route_vars) || empty($vars['group_id']) || !($group = $this->_model->findGroup($vars['group_id']))) {
             if (!$redirect) {
-                $redirect = $this->router->url('groups_overview');
+                $redirect = $this->router->url('groups_redirect');
             }
             $this->redirectAbsolute($redirect);
         }
@@ -76,7 +76,7 @@ class RelatedGroupsController extends RoxControllerBase
     {
         if (!($vars = $this->route_vars) || empty($vars['related_id']) || !($relatedgroup = $this->_model->findGroup($vars['related_id']))) {
             if (!$redirect) {
-                $redirect = $this->router->url('groups_overview');
+                $redirect = $this->router->url('groups_redirect');
             }
             $this->redirectAbsolute($redirect);
         }
@@ -94,7 +94,7 @@ class RelatedGroupsController extends RoxControllerBase
     {
         $group = $this->_getGroupFromRequest();
 
-        $page = new GroupAddRelatedGroupPage();
+        $page = new GroupAddRelatedGroupPage($group);
         $page->my_groups = $this->_model->getMyGroups($group);
         $page->group = $group;
         $page->member = $this->_model->getLoggedInMember();
@@ -120,15 +120,13 @@ class RelatedGroupsController extends RoxControllerBase
             $result = false;
         }
         if ($result) {
-            $page = new GroupRelatedGroupLogPage();
-            $page->group = $group;
+            $page = new GroupRelatedGroupLogPage($group);
             $page->member = $member;
             $page->isGroupAdmin = $isGroupAdmin;
             $page->logs = $this->_model->showRelatedGroupsLog($group->getPKValue());
             $this->setFlashNotice($this->getWords()->getFormatted("SuccessfullyAddedRelatedGroup", htmlspecialchars($relatedgroup->Name, ENT_QUOTES)));
          } else {
-            $page = new GroupRelatedGroupLogPage();
-            $page->group = $group;
+            $page = new GroupRelatedGroupLogPage($group);
             $page->member = $member;
             $page->isGroupAdmin = $isGroupAdmin;
             $page->logs = $this->_model->showRelatedGroupsLog($group->getPKValue());
@@ -148,7 +146,7 @@ class RelatedGroupsController extends RoxControllerBase
     {
         $group = $this->_getGroupFromRequest();
 
-        $page = new GroupDeleteRelatedGroupPage();
+        $page = new GroupDeleteRelatedGroupPage($group);
         $page->group = $group;
         $page->relatedgroups =  $group->findRelatedGroups($group->getPKValue());
         $page->member = $this->_model->getLoggedInMember();
@@ -174,16 +172,14 @@ class RelatedGroupsController extends RoxControllerBase
             $result = false;
         }
         if ($result) {
-            $page = new GroupRelatedGroupLogPage();
-            $page->group = $group;
+            $page = new GroupRelatedGroupLogPage($group);
             $page->member = $member;
             $page->isGroupAdmin = $isGroupAdmin;
             $page->logs = $this->_model->showRelatedGroupsLog($group->getPKValue());
             $this->setFlashNotice($this->getWords()->getFormatted('SuccessfullyRemovedRelatedGroup', htmlspecialchars($relatedgroup->Name, ENT_QUOTES)));
             return $page;
          } else {
-            $page = new GroupRelatedGroupLogPage();
-            $page->group = $group;
+            $page = new GroupRelatedGroupLogPage($group);
             $page->member = $member;
             $page->isGroupAdmin = $isGroupAdmin;
             $page->logs = $this->_model->showRelatedGroupsLog($group->getPKValue());
@@ -204,8 +200,7 @@ class RelatedGroupsController extends RoxControllerBase
         $member = $this->_model->getLoggedInMember();
         $group = $this->_getGroupFromRequest();
         $isGroupAdmin = $group->isGroupOwner($member);
-        $page = new GroupRelatedGroupLogPage();
-        $page->group = $group;
+        $page = new GroupRelatedGroupLogPage($group);
         $page->member = $member;
         $page->isGroupAdmin = $isGroupAdmin;
         $page->logs = $this->_model->showRelatedGroupsLog($group->getPKValue());

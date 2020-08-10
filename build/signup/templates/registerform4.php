@@ -1,6 +1,7 @@
 <div class="card card-block w-100">
     <form method="post" name="signup" id="user-register-form">
         <?= $callback_tag ?>
+        <?php $errors = $vars['errors']; ?>
         <div class="row">
             <div class="col-12 col-md-3">
 
@@ -117,13 +118,7 @@
                                 <th scope="row" class="float-right border-0 text-nowrap">
                                     <?php echo $words->get('SignupPassword'); ?>
                                 </th>
-                                <td class="border-0">
-                                    <?php
-                                    // TODO: replace special characters
-                                    $password = preg_replace("^[A-Za-z0-9]^", "*", $vars['password']);
-                                    echo $password;
-                                    ?>
-                                </td>
+                                <td class="border-0">***********</td>
                             </tr>
                             <tr>
                                 <th scope="row" class="float-right border-top-0 text-nowrap">
@@ -184,8 +179,7 @@
                                 </th>
                                 <td class="border-0">
                                     <?php
-                                    // TODO: Select the name of the language ID
-                                    echo $vars['mothertongue'];
+                                    echo $vars['mothertonguename'];
                                     ?>
                                 </td>
                             </tr>

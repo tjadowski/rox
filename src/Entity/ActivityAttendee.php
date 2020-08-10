@@ -13,15 +13,19 @@ use Doctrine\ORM\Mapping as ORM;
  * ActivityAttendee.
  *
  * @ORM\Table(name="activitiesattendees")
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="App\Repository\ActivityAttendeeRepository")
  *
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
  */
 class ActivityAttendee
 {
+    public const ATTENDS_NO = 0;
+    public const ATTENDS_YES = 1;
+    public const ATTENDS_MAYBE = 2;
+
     /**
-     * @var \App\Entity\Activity
+     * @var Activity
      *
      * @ORM\Id
      * @ORM\ManyToOne(targetEntity="\App\Entity\Activity", inversedBy="attendees")
@@ -30,7 +34,7 @@ class ActivityAttendee
     private $activity;
 
     /**
-     * @var \App\Entity\Member
+     * @var Member
      *
      * @ORM\Id
      * @ORM\ManyToOne(targetEntity="\App\Entity\Member")
@@ -62,8 +66,6 @@ class ActivityAttendee
     /**
      * ActivityAttendee constructor.
      *
-     * @param Activity $activity
-     * @param Member   $attendee
      * @param $status
      * @param $comment
      * @param bool $isOrganizer
@@ -80,11 +82,11 @@ class ActivityAttendee
     /**
      * Set attendee.
      *
-     * @param \App\Entity\Member $attendee
+     * @param Member $attendee
      *
      * @return ActivityAttendee
      */
-    public function setAttendee(\App\Entity\Member $attendee = null)
+    public function setAttendee(Member $attendee = null)
     {
         $this->attendee = $attendee;
 
@@ -94,7 +96,7 @@ class ActivityAttendee
     /**
      * Get attendee.
      *
-     * @return \App\Entity\Member
+     * @return Member
      */
     public function getAttendee()
     {
@@ -104,11 +106,11 @@ class ActivityAttendee
     /**
      * Set activity.
      *
-     * @param \App\Entity\Activity $activity
+     * @param Activity $activity
      *
      * @return ActivityAttendee
      */
-    public function setActivity(\App\Entity\Activity $activity = null)
+    public function setActivity(Activity $activity = null)
     {
         $this->activity = $activity;
 
@@ -118,7 +120,7 @@ class ActivityAttendee
     /**
      * Get activity.
      *
-     * @return \App\Entity\Activity
+     * @return Activity
      */
     public function getActivity()
     {

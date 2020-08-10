@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -24,8 +25,8 @@ class MemberPreference
     /**
      * @var Preference
      *
-     * @ORM\OneToOne(targetEntity="Preference")
-     * @ORM\JoinColumn(name="IdPreference", referencedColumnName="id")
+     * @ORM\ManyToOne(targetEntity="Preference")
+     * @ORM\JoinColumn(name="IdPreference", referencedColumnName="id", nullable=false)
      */
     private $preference;
 
@@ -37,21 +38,21 @@ class MemberPreference
     private $value;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="updated", type="datetime", nullable=false)
      */
     private $updated;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
     private $created;
 
     /**
-     * @var integer
+     * @var int
      *
      * @ORM\Column(name="id", type="integer")
      * @ORM\Id
@@ -61,8 +62,6 @@ class MemberPreference
 
     /**
      * Set member.
-     *
-     * @param Member $member
      *
      * @return MemberPreference
      */
@@ -85,8 +84,6 @@ class MemberPreference
 
     /**
      * Set preference.
-     *
-     * @param Preference $preference
      *
      * @return MemberPreference
      */
@@ -122,8 +119,6 @@ class MemberPreference
     }
 
     /**
-     * Get value.
-     *
      * @return string
      */
     public function getValue()
@@ -132,9 +127,7 @@ class MemberPreference
     }
 
     /**
-     * Set updated.
-     *
-     * @param \DateTime $updated
+     * @param DateTime $updated
      *
      * @return MemberPreference
      */
@@ -148,7 +141,7 @@ class MemberPreference
     /**
      * Get updated.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getUpdated()
     {
@@ -158,7 +151,7 @@ class MemberPreference
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return MemberPreference
      */
@@ -172,7 +165,7 @@ class MemberPreference
     /**
      * Get created.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreated()
     {
@@ -196,8 +189,8 @@ class MemberPreference
      */
     public function onPrePersist()
     {
-        $this->created = new \DateTime('now');
-        $this->updated = new \DateTime('now');
+        $this->created = new DateTime('now');
+        $this->updated = new DateTime('now');
     }
 
     /**
@@ -207,6 +200,6 @@ class MemberPreference
      */
     public function onPreUpdate()
     {
-        $this->updated = new \DateTime('now');
+        $this->updated = new DateTime('now');
     }
 }

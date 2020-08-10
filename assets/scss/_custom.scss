@@ -1,4 +1,5 @@
-$brand-primary:             #f37000;
+$enable-responsive-font-sizes: true;
+$brand-primary: #f37000;
 $primary:                   $brand-primary;
 $info:                      #0083f3;
 
@@ -12,12 +13,14 @@ $line-height:                1.5;
 $headings-font-family:       "Signika";
 $table-bg-accent:               #f9f9f9;
 $table-bg-hover:                #f5f5f5;
-$input-btn-padding-y:           .375rem;
-$input-btn-primary-border:             rgba(255,255,255,.5);
-$input-btn-padding-x-sm:               .75rem;
-$input-btn-padding-x-lg:               1.25rem;
+$input-btn-padding-x:         .75rem !default;
+$input-btn-padding-y:         .375rem;
+$input-btn-primary-border:    rgba(255,255,255,.5);
+$input-btn-padding-x-sm:      .75rem;
+$input-btn-padding-x-lg:      1.25rem;
 $btn-block-spacing-y:            5px;
 $btn-toolbar-margin:             5px;
+$input-padding-x:                .375rem;
 $input-padding-y:                .375rem;
 $input-border-color:             #ccc;
 $input-padding-x-sm:             .75rem;
@@ -45,8 +48,8 @@ $pagination-hover-bg:                  $primary;
 $pagination-hover-border-color:        $primary;
 $pagination-hover-color:               white;
 $pagination-active-border-color:       $primary;
-$pagination-disabled-bg:               #bbb;
-$pagination-disabled-color:            #ccc;
+$pagination-disabled-bg:               #ececec; /* #e9ecef; */
+$pagination-disabled-color:            #999;
 $pagination-disabled-border-color:     #999;
 $card-border-color:        #e5e5e5;
 $tooltip-bg:                  $primary;

@@ -1,7 +1,6 @@
 {% extends 'emails/request.template.html.twig' %}
 
 {% block message %}
-    <h4>{% trans with {'%username%': receiver.Username} %}email.greeting{% endtrans %}</h4>
     <p>{% trans with {'%username%': sender.Username} %}email.request.reply.guest{% endtrans %}</p>
     <p></p>
     <callout class="secondary">
@@ -25,9 +24,9 @@
     {% if request.status == constant('App\\Entity\\HostingRequest::REQUEST_TENTATIVELY_ACCEPTED') %}{% trans with {'%username%': sender.Username} %}email.request.reply.guest.tentatively{% endtrans %}<br>{% endif %}
     <br>
     {{ 'request.arrival' | trans }}:<br>
-    {{ request.arrival|localizeddate('full', 'none', app.request.locale) }}<br>
+    {{ request.arrival|format_date('full', locale=receiverLocale) }}<br>
     {% if request.departure %}{{ 'request.departure' | trans }}:<br>
-        {{ request.departure|localizeddate('full', 'none', app.request.locale) }}<br>{% endif %}
+        {{ request.departure|format_date('full', locale=receiverLocale) }}<br>{% endif %}
     {% if request.flexible %}{{ 'request.flexible' | trans }}<br>{% endif %}
     {{ 'request.number_of_travellers' | trans}}: {{ request.numberOfTravellers }}<br>
 {% endblock request %}

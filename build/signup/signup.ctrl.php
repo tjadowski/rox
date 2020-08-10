@@ -44,7 +44,7 @@ class SignupController extends RoxControllerBase {
     public function index($args = false)
     {
         // In case Signup is closed
-        if (isset($this->_session->get('Param')->FeatureSignupClose) && $this->_session->get('Param')->FeatureSignupClose=="Yes") {
+        if (isset($this->session->get('Param')->FeatureSignupClose) && $this->session->get('Param')->FeatureSignupClose=="Yes") {
             return new SignupClosedPage();
         }
 
@@ -60,12 +60,12 @@ class SignupController extends RoxControllerBase {
         $request = $args->request;
         $model = new SignupModel();
 
-        if ($this->_session->has( 'IdMember' ) && !MOD_right::get()->hasRight('words')) {
-            if (!$this->_session->has( 'Username' )) {
-                $this->_session->remove('IdMember');
+        if ($this->session->has( 'IdMember' ) && !MOD_right::get()->hasRight('words')) {
+            if (!$this->session->has( 'Username' )) {
+                $this->session->remove('IdMember');
                 $page = new SignupProblemPage();
             } else {
-                $this->redirect('members/'.$this->_session->get('Username'));
+                $this->redirect('members/'.$this->session->get('Username'));
             }
         } else switch (isset($request[1]) ? $request[1] : '') {
 
@@ -123,7 +123,7 @@ class SignupController extends RoxControllerBase {
                     PPHP::PExit();
                 }
                 $words = $model->getWords();
-                $usernameValid = preg_match(User::HANDLE_PREGEXP, $_REQUEST['value']);
+                $usernameValid = preg_match(SignupModel::HANDLE_PREGEXP, $_REQUEST['value']);
                 if (!$usernameValid) {
                     echo json_encode(
                         array(
@@ -143,45 +143,6 @@ class SignupController extends RoxControllerBase {
                 PPHP::PExit();
                 break;
 
-            case 'confirm':  // or give it a different name?
-                // this happens when you click the link in the confirmation email
-                if (
-                    !isset($request[2])
-                    || !isset($request[3])
-                    || !preg_match(User::HANDLE_PREGEXP, $request[2])
-                    || !$model->UsernameInUse($request[2])
-                    || !preg_match('/^[a-f0-9]{16}$/', $request[3])
-                ) {
-                    $error = 'InvalidLink';
-                } else {
-                    $error = $model->confirmSignup($request[2], $request[3]);
-                }
-                if ($error === false) {
-                    // Redirect to edit profile forcing user to login
-                    // Set flash message so that user knows what happened
-                    $this->_session->getFlashBag()->add('notice', $model->getWords()->getSilent('SignupSuccess'));
-                    return $this->redirectAbsolute('/editmyprofile');
-                } else {
-                    // Something bad happened; tell the user
-                    $page = new SignupMailConfirmPage();
-                    $page->error = $error;
-                }
-                break;
-
-            case 'resendmail':  // shown when clicking on the link in the MailToConfirm error message
-                $error = '';
-                if (!isset($request[2])) {
-                    $error = 'InvalidLink';
-                } else {
-                    $resent = $model->resendConfirmationMail($request[2]);
-                    if ($resent !== true) {
-                        $error = $resent;
-                    }
-                }
-                $page = new SignupResentMailPage();
-                $page->error = $error;
-                break;
-
             case 'finish':
                 $page = new SignupFinishPage();
                 break;
@@ -189,9 +150,9 @@ class SignupController extends RoxControllerBase {
             default:
                 $step = (isset($request[1]) && $request[1]) ? $request[1] : '1';
                 $page = new SignupPage($step);
-				$StrLog="Entering Signup step: #".$page->step ;
+				$StrLog="Entering Signup step: #".$step ;
 				MOD_log::get()->write($StrLog,"Signup") ;
-                $page->model = $model;
+                $page->setModel($model);
         }
 
         return $page;
@@ -200,14 +161,14 @@ class SignupController extends RoxControllerBase {
 
     public function signupFormCallback($args, $action, $mem_redirect, $mem_resend)
     {
-        $vars =$this->_session->get('SignupBWVars');
+        $vars =$this->session->get('SignupBWVars');
         if (is_array($vars)) {
             $vars = array_merge($vars, $args->post);
         } else {
             $vars = $args->post;
         }
-        $this->_session->set('SignupBWVars', $vars);
-        $vars = $this->_session->get('SignupBWVars');
+        $this->session->set('SignupBWVars', $vars);
+        $vars = $this->session->get('SignupBWVars');
         $request = $args->request;
 
         if (!isset($request[1])) {
@@ -229,26 +190,33 @@ class SignupController extends RoxControllerBase {
             if (count($errors) > 0) {
                 // show form again
                 $vars['errors'] = $errors;
-                $this->_session->set( 'SignupBWVars', $vars );
+                $this->session->set( 'SignupBWVars', $vars );
                 $mem_redirect->post = $vars;
                 return false;
             }
             if ($step < '4') {
                 $step++;
-                $this->_session->set( 'SignupBWVars', $vars );
+                $model->polishFormValues($vars);
+                $this->session->set( 'SignupBWVars', $vars );
                 $mem_redirect->post = $vars;
                 return 'signup/' . ($step);
             }
 
-            // step 4 successfully done register new member
-            $model->polishFormValues($vars);
+            // Check all fields correctly set.
+            $errors = $model->checkRegistrationForm($vars, 1);
+            array_merge($errors, $model->checkRegistrationForm($vars, 2));
+            array_merge($errors, $model->checkRegistrationForm($vars, 3));
+            array_merge($errors, $model->checkRegistrationForm($vars, 4));
 
-            if (!$idTB = $model->registerTBMember($vars)) {
-                // MyTB registration didn't work
-            } else {
-                // signup on MyTB successful, yeah.
-                $model->registerBWMember($vars);
+            if (count($errors) > 0) {
+                $vars['errors'] = $errors;
+                $this->session->set( 'SignupBWVars', $vars );
+                $mem_redirect->post = $vars;
+                return false;
             }
+
+            // step 4 successfully done register new member
+            $model->registerBWMember($vars);
 
             return 'signup/finish';
         }

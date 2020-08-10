@@ -1,8 +1,10 @@
 global.moment = require('moment');
 
-require('tempusdominus-bootstrap-4');
+require('tempusdominus-bootstrap');
 
 $.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Constructor.Default, {
+    locale: document.getElementsByTagName('html')[0].getAttribute('lang'),
+//    allowInputToggle: true,
     icons: {
         time: 'fas fa-clock',
         date: 'fas fa-calendar',
@@ -16,4 +18,3 @@ $.fn.datetimepicker.Constructor.Default = $.extend({}, $.fn.datetimepicker.Const
     }
 });
 
-// require('tempusdominus-bootstrap-4/build/css/tempusdominus-bootstrap-4.css');

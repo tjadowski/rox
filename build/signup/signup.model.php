@@ -22,6 +22,7 @@ Boston, MA  02111-1307, USA.
 
 */
 
+use App\Entity\MemberPreference;
 use Carbon\Carbon;
 
 /**
@@ -122,57 +123,18 @@ WHERE `Email` = \'' . $this->dao->escape(strtolower($email)).'\'';
     {
         $email = $this->dao->escape($email);
 
-        // Thanks to the messed up database we need to check more than just the DB column
-        // First try with the 'real' email address and a plain entry in AdminCryptedValue
-        // Second try with the 'real' email address and an 'XML' entry in AdminCryptedValue
-        // And finally check for a 'URL encoded' email address only happens with an 'XML' entry
-        $query = "
-            SELECT `Username`, members.`Status`, members.`id` AS `idMember`
-            FROM " . PVars::getObj('syshcvol')->Crypted . "`cryptedfields`
-            RIGHT JOIN `members` ON members.`id` = cryptedfields.`IdMember`";
-        if ($this->_session->has( 'IdMember' )) {
-            $query .= ' AND members.`id`!=' . $this->_session->get('IdMember');
-        }
-        $query .= " WHERE (`AdminCryptedValue` = '" . $email . "'";
-        $query .= " OR `AdminCryptedValue` = '<admincrypted>" . $email . "</admincrypted>'";
-        $email = str_replace("@", "%40", $email);
-        $query .= " OR `AdminCryptedValue` = '<admincrypted>" . $email . "</admincrypted>')";
-        $s = $this->dao->query($query);
-        $found = ($s->numRows() != 0);
-        if (!$found) {
-			if (!empty($email)) MOD_log::get()->write("Unique email checking done successfuly","Signup") ;
-            return '';
-        }
-        $text = "Non unique email address: " . $email . " (With New Signup !)";
-		MOD_log::get()->write($text, "Signup");
-		return $text;
-    } // end takeCareForNonUniqueEmailAddress
+        $result = $this->dao->query("SELECT email FROM members m WHERE m.email = '{$email}'");
 
-    /**
-     * Check, if computer has previously been used by BW member
-     *
-     * (If signup team wanna get nicer e-mails, we'll provide adequate
-     * functionalities via signup.view.php and a template.)
-     *
-     * TODO: I wonder, why BW signup team cares for my box; member Bin L.
-     * has been logged in before at this computer, - should be nothing to them.
-     *
-     * @return string text (not HTML) to be added to feedback text, in
-     * 				  case of no cookie ''
-     */
-    public function takeCareForComputerUsedByBWMember()
-    {
-        if (isset($_COOKIE['MyBWusername'])) {
-            $text = 'takeCareForComputerUsedByBWMember: This user had previously been logged in as a BW member ' .
-                    'at the same computer, which has been used for ' .
-                    'registration: ' . $_COOKIE['MyBWusername'];
-			MOD_log::get()->write($text." (With New Signup !)", "Signup");
-			return $text;
+        if ($result) {
+            $row = $result->fetch(PDB::FETCH_OBJ);
+            if ($row) {
+                $text = "Non unique email address: " . $email . " (With New Signup !)";
+                MOD_log::get()->write($text, "Signup");
+                return $text;
+            }
         }
-				MOD_log::get()->write("takeCareForComputerUsedByBWMember: Seems never used before"." (With New Signup !)", "Signup");
-
         return '';
-    } // takeCareForComputerUsedByBWMember
+    } // end takeCareForNonUniqueEmailAddress
 
     public function find($str)
     {
@@ -255,6 +217,7 @@ FROM `user` WHERE
             return(true) ; // found a still used Username
         }
 
+/*      \todo shevek: Remove this part of code as old usernames are no longer recorded
         $query = 'SELECT `UsernameNotToUse` FROM `recorded_usernames_of_left_members` WHERE `UsernameNotToUse` = \''.
 				$this->dao->escape(strtolower($Username)).'\'';
         $s = $this->dao->query($query);
@@ -265,6 +228,7 @@ FROM `user` WHERE
         if (isset($row->UsernameNotToUse)) {
             return(true); // found an ex used Username
         }
+*/
         return(false);
     } // end of UsernameInUse
 
@@ -296,14 +260,13 @@ FROM `user` WHERE
             }
 
             $id = $this->registerBWMember($vars);
-            $this->_session->set( 'IdMember', $id );
+            $this->session->set( 'IdMember', $id );
 
             $vars['feedback'] .= $this->takeCareForNonUniqueEmailAddress($vars['email']);
-            $vars['feedback'] .= $this->takeCareForComputerUsedByBWMember();
 
             $this->writeFeedback($vars['feedback']);
 			if (!empty($vars['feedback'])) {
-				MOD_log::get()->write("feedback[<b>".stripslashes($vars['feedback'])."</b>] IdMember=#".$this->_session->get('IdMember')." (With New Signup !)","Signup");
+				MOD_log::get()->write("feedback[<b>".stripslashes($vars['feedback'])."</b>] IdMember=#".$this->session->get('IdMember')." (With New Signup !)","Signup");
 			}
 
             $View = new SignupView($this);
@@ -345,7 +308,7 @@ VALUES(
 	0,
 	\'closed by member\',
 	' . $lang . ',
-	' . $this->_session->get('IdMember') . '
+	' . $this->session->get('IdMember') . '
 )';
             $s = $this->dao->query($query);
         }
@@ -356,55 +319,31 @@ VALUES(
         $query = '
 SELECT `id`
 FROM `languages`
-WHERE `ShortCode` = \'' . $this->_session->get('lang') . '\'';
+WHERE `ShortCode` = \'' . $this->session->get('lang') . '\'';
         $q = $this->dao->query($query);
         $result = $q->fetch(PDB::FETCH_OBJ);
         return $result->id;
     }
 
-    public function registerTBMember($vars)
+    private function getPreferenceId($preference)
     {
-        $Auth = new MOD_bw_user_Auth;
-        $authId = $Auth->checkAuth('defaultUser');
-
-        $query = '
-INSERT INTO `user`
-(`auth_id`, `handle`, `email`, `active`)
-VALUES
-(
-    '.(int)$authId.',
-    \'' . $vars['username'] . '\',
-    \'' . $vars['email'] . '\',
-    0
-)';
-        $s = $this->dao->query($query);
-        if (!$s->insertId()) {
-            $vars['errors'] = array('inserror');
-            return false;
+        $preferenceID = null;
+        $result = $this->dao->query("SELECT id FROM preferences WHERE codename = '" . $preference . "'");
+        if ($result) {
+            $row = $result->fetch(PDB::FETCH_OBJ);
+            if ($row) {
+                $preferenceID = $row->id;
+            }
         }
-        $userId = $s->insertId();
-        $key = PFunctions::randomString(16);
-        // save register key
-        if (!APP_User::addSetting($userId, 'regkey', $key)) {
-            $vars['errors'] = array('inserror');
-            return false;
+        if (null === $preferenceID) {
+            throw new Exception("Can't find preference " . $preference . ".");
         }
-        // save lang
-        if (!APP_User::addSetting($userId, 'lang', PVars::get()->lang)) {
-            $vars['errors'] = array('inserror');
-            return false;
-        }
-
-        return $userId;
+        return $preferenceID;
     }
 
     /**
+     * Registers a new member into the database.
      *
-     * This has NOT been executed:
-     * ALTER TABLE members
-     * MODIFY COLUMN `id` int( 11 ) NOT NULL COMMENT 'IdMember'
-     * As a result, we do NOT use
-     * '.$this->dao->nextId('members').',
      * @param $vars
      * @return bool
      * @throws EntityException
@@ -431,10 +370,12 @@ VALUES
                 `FirstName`,
                 `SecondName`,
                 `LastName`,
-                `HideAttribute`
+                `HideAttribute`,
+                `accomodation`,
+                `hosting_interest`
             )
             VALUES
-            ( ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 1, ?, ?, ?, ?, ? );";
+            ( ?, ?, ?, ?, ?, ?, NOW(), ?, ?, 1, ?, ?, ?, ?, ?, ?, ? );";
         $stmt = $this->dao->prepare($query);
         $stmt->bindParam(0, $vars['username']);
         $stmt->bindParam(1, $vars['location-geoname-id']);
@@ -450,6 +391,8 @@ VALUES
         $stmt->bindParam(11, $vars['lastname']);
         $hide = \Member::MEMBER_All_HIDDEN;
         $stmt->bindParam(12, $hide);
+        $stmt->bindParam(13, $vars['accommodation']);
+        $stmt->bindParam(14, $vars['hosting_interest']);
 
         $res = $stmt->execute();
         $memberID = $stmt->insertId();
@@ -469,20 +412,21 @@ VALUES
             return function ($v) use ($lang) { return $v->id == $lang; };
         };
 
+        $languagePreferenceID = $this->getPreferenceId("PreferenceLanguage");
+        $newsletterPreferenceID = $this->getPreferenceId("PreferenceAcceptNewsByMail");
+        $localNewsPreferenceID = $this->getPreferenceId("PreferenceLocalEvent");
+
         $update="INSERT INTO memberspreferences (IdMember, IdPreference, Value) VALUES ";
         $filteredLanguages = array_filter($languages, $languageFilter($motherTongue->id));
         if (!empty($filteredLanguages)) {
-            // \todo Remove hard coded pointer into preference table
-            $update .= "($memberEntity->id, 1, " . $motherTongue->id . ")," . PHP_EOL;
+            $update .= "($memberEntity->id, $languagePreferenceID, " . $motherTongue->id . ")," . PHP_EOL;
         }
 
         // Set newsletter preference
-        // \todo Remove hard coded pointer into preference table
-        $update .= "($memberEntity->id, 8, '" . $vars['newsletters'] . "'), " . PHP_EOL;
+        $update .= "($memberEntity->id, $newsletterPreferenceID, '" . $vars['newsletters'] . "'), " . PHP_EOL;
 
         // Set local info preference
-        // \todo Remove hard coded pointer into preference table
-        $update .= "($memberEntity->id, 13, '" . $vars['local-info'] . "')" . PHP_EOL;
+        $update .= "($memberEntity->id, $localNewsPreferenceID, '" . $vars['local-info'] . "')" . PHP_EOL;
 
         $this->dao->query($update);
 
@@ -518,7 +462,7 @@ VALUES
             return false;
         }
 
-		MOD_log::get()->writeIdMember($memberID,"member  <b>".$vars['username']."</b> is signuping with success in city [".$vars['location']. "]  using language (".$this->_session->get("lang")." IdMember=#".$memberID." (With New Signup !)","Signup");
+		MOD_log::get()->writeIdMember($memberID,"member  <b>".$vars['username']."</b> is signuping with success in city [".$vars['location']. "]  using language (".$this->session->get("lang")." IdMember=#".$memberID." (With New Signup !)","Signup");
 
         return $memberID;
 
@@ -544,6 +488,7 @@ VALUES
         }
 
         $vars['email'] = strtolower($vars['email']);
+        $vars['emailcheck'] = strtolower($vars['emailcheck']);
 
         $escapeList = array('username', 'email', 'gender',
                             'feedback', 'housenumber', 'street','FirstName','SecondName','LastName', 'zip');
@@ -552,7 +497,10 @@ VALUES
                 $vars[$formfield] = $this->dao->escape($vars[$formfield]);
             }
         }
-        
+        if (isset($vars['mothertongue'])) {
+            $language = $this->createEntity('Language', $vars['mothertongue']);
+            $vars['mothertonguename'] = $language->Name;
+        }
     }
 
     private function checkStepOne(&$vars)
@@ -597,9 +545,17 @@ VALUES
         }
 
         // accommodation
-        if (empty($vars['accommodation']) || ($vars['accommodation']!='anytime' && $vars['accommodation']!='dependonrequest'
-                && $vars['accommodation']!='neverask')) {
+        if (empty($vars['accommodation']) || ($vars['accommodation']!='anytime' && $vars['accommodation']!='neverask'))
+        {
             $errors[] = 'SignupErrorProvideAccommodation';
+        }
+
+        // hosting interest needs to be set to a value different than 0 if accommodation is anytime
+        if (!empty($vars['accommodation']) && $vars['accommodation']=='anytime')
+        {
+            if (empty($vars['hosting_interest']) || $vars['hosting_interest'] == 0) {
+                $errors[] = 'SignupErrorProvideHostingInterest';
+            }
         }
 
         if (!empty($vars['sweet'])) {

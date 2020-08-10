@@ -2,6 +2,7 @@
 
 namespace App\Model;
 
+use App\Entity\Member;
 use App\Pagerfanta\LogAdapter;
 use App\Utilities\ManagerTrait;
 use Pagerfanta\Pagerfanta;
@@ -13,12 +14,11 @@ class LogModel
     /**
      * Returns a Pagerfanta object that contains the currently selected logs.
      *
-     * @param array $types
      * @param $member
      * @param int $page
      * @param int $limit
      *
-     * @return \Pagerfanta\Pagerfanta
+     * @return Pagerfanta
      */
     public function getFilteredLogs(array $types, $member, $page, $limit)
     {
@@ -30,7 +30,10 @@ class LogModel
         return $pagerFanta;
     }
 
-    public function getLogTypes()
+    /**
+     * @return array|false
+     */
+    public function getLogTypes(Member $member)
     {
         $types = [
             'accepting',
@@ -71,6 +74,7 @@ class LogModel
             'Geo',
             'Group',
             'hacking',
+            'Image',
             'Log',
             'Login',
             'lostpassword',
@@ -84,6 +88,7 @@ class LogModel
             'mytranslators',
             'oldBW',
             'polls',
+            'Profile',
             'Profilupdate',
             'Profileupdate',
             'query',
@@ -106,6 +111,11 @@ class LogModel
             'uploadphoto',
             'VerifyMember',
         ];
+        // Reduce list of types to scope
+        $allowedTypes = $member->getScopeForRight(Member::ROLE_ADMIN_LOGS);
+        if ('All' !== $allowedTypes[0]) {
+            $types = array_intersect($allowedTypes, $types);
+        }
         $logTypes = array_combine($types, $types);
 
         return $logTypes;

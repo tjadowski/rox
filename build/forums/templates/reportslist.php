@@ -62,15 +62,15 @@ for ($ii = 0; $ii < $iiMax; $ii++) {
     <tr>
         <th scope="row"><?=$p->Status ?></th>
         <td>
-            <?
+            <?php
             if (!empty($p->IdReporter)) {
                 echo MOD_layoutbits::PIC_50_50($p->Username) ;
                 echo '<br>';
-                echo '<a class="username" href="members"' . $p->Username . '">' . $p->Username . '</a>';
+                echo '<a class="username" href="members/' . $p->Username . '">' . $p->Username . '</a>';
             }
             ?>
         </td>
-        <td class="font-weight-bold"><?= $p->PostComment; ?></td>
+        <td><?= $p->PostComment; ?></td>
         <td><a href="forums/reporttomod/<?= $p->IdPost; ?>/<?= $p->IdReporter; ?>">view report</a></td>
         <td></td>
     </tr>

@@ -97,17 +97,12 @@ class PasswordReset
         return $this->id;
     }
 
-    /**
-     * @return Member
-     */
     public function getMember(): Member
     {
         return $this->member;
     }
 
     /**
-     * @param Member $member
-     *
      * @return PasswordReset
      */
     public function setMember(Member $member)
@@ -125,5 +120,12 @@ class PasswordReset
     public function onPrePersist()
     {
         $this->generated = new DateTime('now');
+    }
+
+    public function setGenerated(\DateTimeInterface $generated): self
+    {
+        $this->generated = $generated;
+
+        return $this;
     }
 }

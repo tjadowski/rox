@@ -9,7 +9,7 @@ use Carbon\Carbon;
 use Doctrine\ORM\EntityManagerInterface;
 use PVars;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 class LocaleListener implements EventSubscriberInterface
@@ -25,8 +25,7 @@ class LocaleListener implements EventSubscriberInterface
     /**
      * LocaleListener constructor.
      *
-     * @param EntityManagerInterface $em
-     * @param string                 $defaultLocale
+     * @param string $defaultLocale
      */
     public function __construct(EntityManagerInterface $em, $defaultLocale = 'en')
     {
@@ -46,10 +45,8 @@ class LocaleListener implements EventSubscriberInterface
 
     /**
      * @SuppressWarnings(PHPMD.StaticAccess)
-     *
-     * @param GetResponseEvent $event
      */
-    public function onKernelRequest(GetResponseEvent $event)
+    public function onKernelRequest(RequestEvent $event)
     {
         $request = $event->getRequest();
         if (!$request->hasPreviousSession()) {
@@ -57,11 +54,15 @@ class LocaleListener implements EventSubscriberInterface
         }
 
         // try to see if the locale has been set as a _locale routing parameter
-        if ($locale = $request->attributes->get('_locale')) {
+        $locale = $request->attributes->get('_locale');
+        if ($locale) {
             $request->getSession()->set('_locale', $locale);
         } else {
             // if no explicit locale has been set on this request, use one from the session
-            $locale = $request->getSession()->get('_locale', $this->defaultLocale);
+            $locale = $request->getSession()->get('_locale');
+            if (null === $locale) {
+                $locale = 'en';
+            }
         }
         $request->setLocale($locale);
         Carbon::setLocale($locale);

@@ -15,15 +15,17 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, see <http://www.gnu.org/licenses/> or 
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+along with this program; if not, see <http://www.gnu.org/licenses/> or
+write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 */
     /**
      * @author Fake51
      */
 
-    /**
+use App\Doctrine\GroupType;
+
+/**
      * This page shows details for a given group
      *
      * @package Apps
@@ -34,10 +36,10 @@ class GroupStartPage extends GroupsBasePage
     protected function column_col3()
     {
         $words = $this->getWords();
-		
-		if (!$this->isGroupMember() && $this->group->Type == 'NeedInvitation')
+
+		if (!$this->isGroupMember() && $this->group->Type == GroupType::INVITE_ONLY)
 		{
-			echo "not public";
+			echo $words->get('GroupsNotPublic');
 		}
 		else
 		{
@@ -53,7 +55,7 @@ class GroupStartPage extends GroupsBasePage
 	        include "templates/groupstart.php";
 		}
     }
-    
+
     protected function getSubmenuActiveItem() {
         return 'start';
     }

@@ -16,15 +16,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, see <http://www.gnu.org/licenses/> or 
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+along with this program; if not, see <http://www.gnu.org/licenses/> or
+write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 
 */
-$User = APP_User::login();
+$User = $this->_model->getLoggedInMember();
+
 $noForumLegendBox = true;
-$ToogleTagCloud=true ;
-$TagCloud=true ;
+$multipages = null;
 ?><?php
 if ($ownGroupsButtonCallbackId) {
     if ($boards->owngroupsonly == "No") {
@@ -33,11 +33,12 @@ if ($ownGroupsButtonCallbackId) {
         $buttonText = $this->words->getBuffered('SwitchShowAllGroupsTopics');
     }
     ?>
-    <div class="col-12 col-md-4 order-2 text-right">
+    <div class="row"><div class="col-12">
         <form method="post" action="<?php echo rtrim(implode('/', $request), '/').'/';?>">
             <input type="hidden" name="<?php echo $ownGroupsButtonCallbackId; ?>"  value="1">
-            <input type="submit" class="btn btn-primary" name="submit" value="<?php echo $buttonText; ?>">
+            <input type="submit" class="btn btn-primary float-right" name="submit" value="<?php echo $buttonText; ?>">
         </form>
+    </div>
     </div>
     <?php
     echo $this->words->flushBuffer();
@@ -45,10 +46,10 @@ if ($ownGroupsButtonCallbackId) {
 $uri = 'forums/';
 ?>
 
-<!-- Now displays the recent post list -->	
+<!-- Now displays the recent post list -->
 
 <?php
-    if ($threads = $boards->getThreads()) {
+$threads = $boards->getThreads()
 ?>
         <div class="row">
   <div class="col-12 col-md-8">
@@ -57,7 +58,7 @@ $uri = 'forums/';
   </div><!--  row -->
 
 <?php if (!$noForumNewTopicButton) { ?>
-  <div class="col-12 col-md-4 mt-2">
+  <div class="col-12 col-md-4 mb-2">
       <a class="btn btn-primary float-right" role="button" href="<?php echo $uri; ?>new"><?php echo $this->words->getBuffered('ForumNewTopic'); ?></a><?php echo $this->words->flushBuffer(); ?>
   </div>
 <?php
@@ -65,5 +66,22 @@ $uri = 'forums/';
 
 require 'boardthreads.php';
 ?>
+</div>
+<?php
+    if ($ownGroupsButtonCallbackId) {
+    if ($boards->owngroupsonly == "No") {
+    $buttonText = $this->words->getBuffered('SwitchShowOnlyMyGroupsTopics');
+    } else {
+    $buttonText = $this->words->getBuffered('SwitchShowAllGroupsTopics');
+    }
+    ?>
+    <div class="row"><div class="col-12">
+            <form method="post" action="<?php echo rtrim(implode('/', $request), '/').'/';?>">
+                <input type="hidden" name="<?php echo $ownGroupsButtonCallbackId; ?>"  value="1">
+                <input type="submit" class="btn btn-primary float-right" name="submit" value="<?php echo $buttonText; ?>">
+            </form>
         </div>
-    <? } ?>
+    </div>
+<?php
+echo $this->words->flushBuffer();
+}

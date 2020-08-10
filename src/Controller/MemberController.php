@@ -3,307 +3,146 @@
 namespace App\Controller;
 
 use App\Entity\Member;
-use App\Entity\Message;
-use App\Entity\PasswordReset;
-use App\Entity\Preference;
-use App\Form\FindUserFormType;
-use App\Form\ResetPasswordFormType;
+use App\Form\PasswordFormType;
+use App\Logger\Logger;
 use App\Model\MemberModel;
-use App\Repository\MemberRepository;
-use App\Repository\MessageRepository;
-use App\Utilities\MailerTrait;
+use App\Utilities\ManagerTrait;
 use App\Utilities\TranslatedFlashTrait;
 use App\Utilities\TranslatorTrait;
-use Doctrine\ORM\NonUniqueResultException;
 use Exception;
-use Html2Text\Html2Text;
-use Swift_Message;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\Form\FormError;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Encoder\EncoderFactoryInterface;
+use Symfony\Component\Security\Core\Security;
+use Symfony\WebpackEncoreBundle\Asset\EntrypointLookupInterface;
 
 /**
  * Class MemberController.
  */
 class MemberController extends AbstractController
 {
-    use MailerTrait;
+    use ManagerTrait;
     use TranslatorTrait;
     use TranslatedFlashTrait;
 
     /**
-     * @Route("/member/autocomplete", name="members_autocomplete")
+     * @Route("/mydata", name="member_personal_data")
      *
-     * @param Request $request
+     * @throws Exception
      *
-     * @return JsonResponse
+     * @return StreamedResponse|Response
      */
-    public function autoCompleteAction(Request $request)
-    {
-        $names = [];
-        $callback = trim(strip_tags($request->get('callback')));
-        $term = trim(strip_tags($request->get('term')));
+    public function getPersonalDataSelf(
+        Request $request,
+        MemberModel $memberModel,
+        Security $security,
+        EncoderFactoryInterface $encoderFactory,
+        EntrypointLookupInterface $entrypointLookup
+    ) {
+        $passwordForm = $this->createForm(PasswordFormType::class);
+        $passwordForm->handleRequest($request);
 
-        $em = $this->getDoctrine()->getManager();
+        if ($passwordForm->isSubmitted() && $passwordForm->isValid()) {
+            /** @var Member $member */
+            $member = $this->getUser();
+            $password = $passwordForm->get('password')->getData();
 
-        /** @var MemberRepository $memberRepository */
-        $memberRepository = $em->getRepository(Member::class);
-        $entities = $memberRepository->loadMembersByUsernamePart($term);
+            $token = $security->getToken();
 
-        foreach ($entities as $entity) {
-            $names[] = [
-                'id' => $entity['username'],
-                'label' => $entity['username'],
-                'value' => $entity['username'],
-            ];
-        }
+            if ($token) {
+                $encoder = $encoderFactory->getEncoder($member);
 
-        $response = new JsonResponse();
-        $response->setCallback($callback);
-        $response->setData($names);
+                if ($encoder->isPasswordValid($member->getPassword(), $password, $member->getSalt())) {
+                    // Collect information and store in zip file
+                    $zipFilename = $memberModel->collectPersonalData($member);
 
-        return $response;
-    }
+                    // Entrypoints need to be reset as they will be used during rendering of the sub pages for the data extract
+                    $entrypointLookup->reset();
 
-    /**
-     * @Route("/resetpassword", name="member_request_reset_password")
-     *
-     * @param Request     $request
-     * @param MemberModel $memberModel
-     *
-     * @return Response
-     */
-    public function requestResetPasswordAction(Request $request, MemberModel $memberModel)
-    {
-        // Someone obviously lost their way. No sense in resetting your password if you're currently logged in.
-        if ($this->isGranted('ROLE_USER')) {
-            return $this->redirectToRoute('landingpage');
-        }
+                    $request->getSession()->set('mydata_file', $zipFilename);
 
-        $form = $this->createForm(FindUserFormType::class);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-            $member = null;
-            /** @var MemberRepository $memberRepository */
-            $memberRepository = $this->getDoctrine()->getRepository(Member::class);
-            try {
-                /** @var Member $member */
-                $member = $memberRepository->loadUserByUsername($data['term']);
-            } catch (NonUniqueResultException $e) {
-            }
-            if (null === $member) {
-                $form->addError(new FormError($this->translator->trans('flash.email.reset.password')));
-            } else {
-                $token = null;
-                try {
-                    $token = $memberModel->generatePasswordResetToken($member);
-                } catch (Exception $e) {
+                    return $this->render('private/download.html.twig', [
+                        'username' => $member->getUsername(),
+                        'url' => $this->generateUrl('member_download_data', ['username' => $member->getUsername()], UrlGeneratorInterface::ABSOLUTE_URL),
+                    ]);
                 }
-                if (null === $token) {
-                    $this->addTranslatedFlash('error', 'flash.no.reset.password');
-
-                    return $this->redirectToRoute('security_login');
-                }
-
-                /* Sent the member a link to follow to reset the password */
-                $sent = $this->sendPasswordResetLink(
-                    $member,
-                    'Password Reset for BeWelcome',
-                    $token
-                );
-                if ($sent) {
-                    $this->addTranslatedFlash('notice', 'flash.email.reset.password');
-
-                    return $this->redirectToRoute('security_login');
-                }
-                $form->addError(new FormError('There was an error sending the password reset link.'));
+                $passwordForm->addError(new FormError($this->translator->trans('form.error.password.incorrect')));
             }
         }
 
-        return $this->render('member/request.password.reset.html.twig', [
-            'form' => $form->createView(),
+        return $this->render('private/password.html.twig', [
+            'form' => $passwordForm->createView(),
         ]);
     }
 
     /**
-     * @Route("/resetpassword/{username}/{token}", name="member_reset_password",
-     *     requirements={"key": "[a-z0-9]{32}"})
+     * @Route("/members/{username}/data", name="admin_personal_data")
      *
-     * @param Request $request
-     * @param Member  $member
-     * @param $token
+     * @throws Exception
      *
-     * @return Response
+     * @return StreamedResponse|Response
+     * @ParamConverter("member", class="App\Entity\Member", options={"mapping": {"username": "username"}})
      */
-    public function resetPasswordAction(Request $request, Member $member, $token)
-    {
-        // Someone obviously lost their way. No sense in resetting your password if you're currently logged in.
-        if ($this->isGranted('ROLE_USER')) {
-            return $this->redirectToRoute('landingpage');
-        }
+    public function getPersonalData(
+        Request $request,
+        Member $member,
+        Logger $logger,
+        ContainerBagInterface $params,
+        MemberModel $memberModel
+    ) {
+        // Either the member themselves or a person from the safety or the admin can access
+        $this->denyAccessUnlessGranted(
+            Member::ROLE_ADMIN_ADMIN,
+            null,
+            'Unable to access this page!'
+        );
 
-        $repository = $this->getDoctrine()->getRepository(PasswordReset::class);
-        /** @var PasswordReset $passwordReset */
-        $passwordReset = $repository->findOneBy(['member' => $member, 'token' => $token]);
+        $logger->write('Extracting personal data for ' . $member->getUsername(), 'Members');
 
-        if (null === $passwordReset) {
-            $this->addTranslatedFlash('error', 'flash.reset.password.invalid');
+        $zipFilename = $memberModel->collectPersonalData($params, $member);
 
-            return $this->redirectToRoute('member_request_reset_password');
-        }
+        $request->getSession()->set('mydata_file', $zipFilename);
 
-        $diffInDays = $passwordReset->getGenerated()->diffInDays();
-        if ($diffInDays > 2) {
-            $this->addFlash('error', 'flash.reset.password.invalid');
-
-            return $this->redirectToRoute('member_request_reset_password');
-        }
-
-        $form = $this->createForm(ResetPasswordFormType::class);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-            $newPassword = $data['password'];
-            $member->setPassword($newPassword);
-            $em = $this->getDoctrine()->getManager();
-            $em->persist($member);
-            $em->flush();
-            $this->addTranslatedFlash('notice', 'flash.password.reset');
-
-            return $this->redirectToRoute('security_login');
-        }
-
-        return $this->render('member/reset.password.html.twig', [
-            'form' => $form->createView(),
+        return $this->render('private/download.html.twig', [
+            'username' => $member->getUsername(),
+            'url' => $this->generateUrl('member_download_data', ['username' => $member->getUsername()], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }
 
     /**
-     * @Route("/count/messages/unread", name="count_messages_unread")
+     * @Route("/mydata/{username}/download", name="member_download_data")
      *
-     * @param Request $request
+     * @throws Exception
      *
-     * @return JsonResponse
+     * @return BinaryFileResponse|RedirectResponse
+     * @ParamConverter("member", class="App\Entity\Member", options={"mapping": {"username": "username"}})
      */
-    public function getUnreadMessagesCount(Request $request)
+    public function downloadPersonalData(Request $request, Member $member)
     {
-        $member = $this->getUser();
-        $countWidget = $toastWidget = '';
-        $lastUnreadCount = (int) ($request->request->get('current'));
+        $zipFilename = $request->getSession()->get('mydata_file');
+        if (file_exists($zipFilename)) {
+            // main dir is left over!
+            $response = new BinaryFileResponse($zipFilename);
+            $response->headers->set('Content-Type', 'application/zip');
+            $response->headers->set('Location', '/members/member-1223');
+            $response->setContentDisposition(
+                ResponseHeaderBag::DISPOSITION_INLINE
+            );
+            $response->deleteFileAfterSend(true);
 
-        /** @var MessageRepository $messageRepository */
-        $messageRepository = $this->getDoctrine()->getRepository(Message::class);
-        $unreadMessageCount = $messageRepository->getUnreadMessagesCount($member);
-
-        if (($unreadMessageCount !== $lastUnreadCount) && ($unreadMessageCount > $lastUnreadCount)) {
-            $countWidget = $this->renderView('widgets/messagescount.hml.twig', [
-                'messageCount' => $unreadMessageCount,
-            ]);
-            $toastWidget = $this->renderView('widgets/messages.toast.html.twig', [
-                'messageCount' => $unreadMessageCount,
-                'lastMessageCount' => $lastUnreadCount,
-            ]);
+            return $response;
         }
-        $response = new JsonResponse();
-        $response->setData([
-            'oldCount' => $lastUnreadCount,
-            'newCount' => $unreadMessageCount,
-            'html' => $countWidget,
-            'toast' => $toastWidget,
-        ]);
 
-        return $response;
-    }
-
-    /**
-     * @Route("/count/requests/unread", name="count_requests_unread")
-     *
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
-    public function getUnreadRequestsCount(Request $request)
-    {
-        $member = $this->getUser();
-        $countWidget = $toastWidget = '';
-        $lastUnreadCount = (int) ($request->request->get('current'));
-
-        /** @var MessageRepository $messageRepository */
-        $messageRepository = $this->getDoctrine()->getRepository(Message::class);
-        $unreadRequestsCount = $messageRepository->getUnreadRequestsCount($member);
-
-        if (($unreadRequestsCount !== $lastUnreadCount) && ($unreadRequestsCount > $lastUnreadCount)) {
-            $countWidget = $this->renderView('widgets/requestscount.html.twig', [
-                'requestCount' => $unreadRequestsCount,
-            ]);
-            $toastWidget = $this->renderView('widgets/requests.toast.html.twig', [
-                'requestCount' => $unreadRequestsCount,
-                'lastRequestCount' => $lastUnreadCount,
-            ]);
-        }
-        $response = new JsonResponse();
-        $response->setData([
-            'oldCount' => $lastUnreadCount,
-            'newCount' => $unreadRequestsCount,
-            'html' => $countWidget,
-            'toast' => $toastWidget,
-        ]);
-
-        return $response;
-    }
-
-    private function sendPasswordResetLink(Member $receiver, $subject, $token)
-    {
-        $this->sendTemplateEmail('password@bewelcome.org', $receiver, 'reset.password', [
-            'receiver' => $receiver,
-            'subject' => $subject,
-            'token' => $token,
-        ]);
-
-        return true;
-//        $preferenceRepository = $this->getDoctrine()->getRepository(Preference::class);
-//        /** @var Preference $preference */
-//        $preference = $preferenceRepository->findOneBy(['codename' => Preference::HTML_MAILS]);
-//        $htmlMails = ('Yes' === $receiver->getMemberPreferenceValue($preference));
-//
-//        // Send mail notification
-//        $html = $this->renderView('emails/reset.password.html.twig', [
-//            'receiver' => $receiver,
-//            'subject' => $subject,
-//            'token' => $token,
-//        ]);
-//        $converter = new Html2Text($html, [
-//            'do_links' => 'table',
-//            'width' => 75,
-//        ]);
-//        $plainText = $converter->getText();
-//        $message = (new Swift_Message())
-//            ->setSubject($subject)
-//            ->setFrom(
-//                [
-//                    'password@bewelcome.org' => 'BeWelcome',
-//                ]
-//            )
-//            ->setTo($receiver->getEmail())
-//            ->addPart(
-//                $plainText,
-//                'text/plain'
-//            );
-//        if ($htmlMails) {
-//            $message->addPart(
-//                $html,
-//                'text/html'
-//            );
-//        }
-//
-//        $recipients = $mailer->send($message);
-//
-//        return (0 === $recipients) ? false : true;
+        return new RedirectResponse($this->generateUrl('members_profile', ['username' => $member->getUsername()]));
     }
 }

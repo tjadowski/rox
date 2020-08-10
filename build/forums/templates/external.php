@@ -21,7 +21,8 @@ write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 
 */
-$User = APP_User::login();
+$User = $this->_model->getLoggedInMember();
+
 $words = new MOD_words();
 $layoutbits = new MOD_layoutbits();
 ?>
@@ -32,7 +33,7 @@ $layoutbits = new MOD_layoutbits();
     if ($threads = $boards->getThreads()) {
 ?>
 
-<table class="table table-striped table-hover">
+<table class="table table-striped table-hover" style="table-layout: fixed;">
     <tbody>
 <?php
 $threadsliced = array_slice($threads, 0, 5);
@@ -50,8 +51,7 @@ $threadsliced = array_slice($threads, 0, 5);
 
         ?>
             <tr>
-                <td><i class="far fa-comment pr-1"></i>
-                    <?php
+                <td class="text-truncate"><?php
                     if ($thread->ThreadDeleted=='Deleted') {
                         echo "[Deleted]" ;
                     }
@@ -99,13 +99,11 @@ $threadsliced = array_slice($threads, 0, 5);
     }
 
     if ($showNewTopicButton && $User && $uri != 'forums/') {
-    ?>
-    <div id="boardnewtopicbottom"><a class="btn btn-primary" href="<?php echo $this->uri; ?>new
-    <?php
-    if (!empty($this->_model->IdGroup)) echo "/u" . $this->_model->IdGroup ;
-    echo "\">",$words->getBuffered('ForumNewTopic');
-    ?></a><?php echo $words->flushBuffer(); ?></div>
-    <?php
+        if ($this->_model->IdGroup) {
+            echo '<div id="boardnewtopicbottom"><a class="btn btn-primary" href="group/' . $this->_model->IdGroup . '/new">';
+        } else {
+            echo '<div id="boardnewtopicbottom"><a class="btn btn-primary" href="' . $this->uri . 'new">';
+        }
+        echo $words->getBuffered('ForumNewTopic');
+        echo '</a></div>';
     }
-
-?>

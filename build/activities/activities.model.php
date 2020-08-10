@@ -1,4 +1,7 @@
 <?php
+
+use AnthonyMartin\GeoLocation\GeoLocation;
+
 /**
  * Activities model class.
  *
@@ -23,7 +26,7 @@ class ActivitiesModel extends RoxModelBase
             $sql .= 'public = 1 AND ';
         }
         $sql .= '(dateTimeStart >= NOW() OR dateTimeEnd >= NOW())'
-                . ' AND status = 0';
+            . ' AND status = 0';
         return $sql;
     }
 
@@ -37,6 +40,26 @@ class ActivitiesModel extends RoxModelBase
         $temp = $this->CreateEntity('Activity');
         $temp->sql_order = "dateTimeStart";
         $query = $this->getUpcomingQuery($onlyPublic);
+        $all = $temp->FindByWhereMany($query, $pageno * $items, $items);
+        return $all;
+    }
+
+    protected function getUpcomingOnlineQuery() {
+        $sql = 'public = 1 AND (dateTimeStart >= NOW() OR dateTimeEnd >= NOW())'
+            . ' AND status = 0';
+        return $sql;
+    }
+
+    public function getUpcomingOnlineActivitiesCount() {
+        $temp = $this->CreateEntity('Activity');
+        $count = $temp->countWhere($this->getUpcomingOnlineQuery());
+        return $count;
+    }
+
+    public function getUpcomingOnlineActivities($pageno, $items) {
+        $temp = $this->CreateEntity('Activity');
+        $temp->sql_order = "dateTimeStart";
+        $query = $this->getUpcomingOnlineQuery();
         $all = $temp->FindByWhereMany($query, $pageno * $items, $items);
         return $all;
     }
@@ -110,16 +133,18 @@ class ActivitiesModel extends RoxModelBase
         }
         $row = $sql->fetch(PDB::FETCH_OBJ);
 
-        // calculate rectangle around place with given distance
-        $lat = deg2rad(doubleval($row->latitude));
-        $long = deg2rad(doubleval($row->longitude));
+        // Fetch latitude and longitude of member's location
+        $latitude = $loggedInMember->Latitude;
+        $longitude = $loggedInMember->Longitude;
 
-        $longne = rad2deg(($distance + 6378 * $long) / 6378);
-        $longsw = rad2deg((6378 * $long - $distance) / 6378);
+        $edison = GeoLocation::fromDegrees($latitude, $longitude);
+        $coordinates = $edison->boundingCoordinates($distance, 'km');
 
-        $radiusAtLatitude = 6378 * cos($lat);
-        $latne = rad2deg(($distance + $radiusAtLatitude * $lat) / $radiusAtLatitude);
-        $latsw = rad2deg(($radiusAtLatitude * $lat - $distance) / $radiusAtLatitude);
+        $longne = $coordinates[0]->getLongitudeInDegrees();
+        $longsw = $coordinates[1]->getLongitudeInDegrees();
+
+        $latne = $coordinates[0]->getLatitudeInDegrees();
+        $latsw = $coordinates[1]->getLatitudeInDegrees();
         if ($latne < $latsw) {
             $tmp = $latne;
             $latne = $latsw;

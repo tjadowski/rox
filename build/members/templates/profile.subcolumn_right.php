@@ -1,14 +1,16 @@
 <div class="d-lg-block d-none mb-sm-3 mb-lg-0">
     <?php
 
-if (!$this->passedAway){
+    use Carbon\Carbon;
+
+    if (!$this->passedAway){
     $accIdSuffix = 'Right';
     require 'profile.subcolumn_accommodation.php';
 }
 
 ?>
 </div>
-<?
+<?php
 
     $comments = $this->member->comments;
     $username = $this->member->Username;
@@ -49,25 +51,28 @@ if (!$this->passedAway){
                    $quality = "bad";
                    } ?>
 
-                       <? if ($commentLoopCount > 1){ ?><hr class="m-1"><? } ?>
+                       <?php if ($commentLoopCount > 1){ ?><hr class="m-1"><?php } ?>
                     <div class="comment-bg-<?=$quality?> p-2">
-                       <div class="w-100 mt-1">
+                       <div class="my-1 clearfix">
                            <a href="members/<?=$c->UsernameFromMember?>">
                                <img class="float-left mr-2"  src="members/avatar/<?=$c->UsernameFromMember?>/50"  height="50"  width="50"  alt="<?=$c->UsernameFromMember?>" />
                            </a>
                            <div>
+                               <p class="m-0" style="line-height: 1.0;">
                                    <?php if (!$this->passedAway) { ?>
-                               <p class="m-0" style="line-height: 0.6;">
                                        <span class="commenttitle <?=$quality?>"><?= $words->get('CommentQuality_'.$c->comQuality.''); ?></span>
                                        <span class="float-right">
                                        <?php if ($this->loggedInMember){ ?>
                                            <a href="/members/<?= $this->member->Username;?>/comment/<?php echo $c->id;?>/report" title="<?=$words->getSilent('ReportCommentProblem') ?>" class="gray"><i class="fa fa-flag" alt="<?=$words->getSilent('ReportCommentProblem') ?>"></i></a>
-                                       <? } ?>
+                                       <?php } ?>
                                    </span>
-                               </p>
                                    <?php }?>
-                                   <p class="small grey m-0 p-0"><?=$words->get('CommentFrom','<a href="members/'.$c->UsernameFromMember.'">'.$c->UsernameFromMember.'</a>')?>
-                                   <br><span><?=$c->created?></span></p>
+                                   <br><small><?=$words->get('CommentFrom','<a href="members/'.$c->UsernameFromMember.'">'.$c->UsernameFromMember.'</a>')?></small>
+                                   <br><small><span title="<?=$c->created?>"><?php
+                                           $created = Carbon::createFromFormat('Y-m-d H:i:s', $c->created);
+                                           echo $created->diffForHumans();
+                                           ?></span></small>
+                               </p>
                            </div>
                        </div>
                            <div class="w-100 pt-2">

@@ -3,7 +3,7 @@
             <label class="h3" for="GroupsSearchInput"><?= $words->get('GroupsSearchHeading'); ?></label>
             <form action="groups/search" method="get">
                 <div class="input-group">
-                    <input type="text" class="form-control" name="GroupsSearchInput" value="" id="GroupsSearchInput"/>
+                    <input type="text" class="form-control" name="GroupsSearchInput" value="<?= $this->search_terms ?>" id="GroupsSearchInput"/>
                     <span class="input-group-append">
                             <button class="btn btn-primary"
                                     type="submit"><?= $words->getSilent('GroupsSearchSubmit'); ?></button>
@@ -47,11 +47,8 @@
         </div>
 
 
-        <div class="col col-auto col-lg-7 order-2 mt-3">
         <?php
         $search_result = $this->search_result;
-
-        $this->pager->render();
 
         if ($search_result) :
         $act_order = (($this->result_order == "actdesc") ? 'actasc' : 'actdesc');
@@ -60,42 +57,50 @@
         $created_order = (($this->result_order == "createdasc") ? 'createddesc' : 'createdasc');
         $category_order = (($this->result_order == "categoryasc") ? 'categorydesc' : 'categoryasc');
         ?>
-        </div>
-        <div class="col col-lg-5 order-1 mt-3">
+        <div class="col-12 mt-3">
             <h3><?= $words->get('GroupsSearchResult'); ?></h3>
+        </div>
+        <div class="col-12 col-md-6 mt-1">
             <label class="font-weight-bold"><?php echo $words->get('GroupsSearchOrdered'); ?>:</label>
             <span class="dropdown">
                 <button class="btn btn-sm btn-secondary " type="button" id="dropdownVisibility" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?php echo $words->get('GroupsSearchOrdered' . $this->result_order) ?></button>
-                <div class="dropdown-menu ddextras px-0 py-1" aria-labelledby="dropdownVisibility">
-                    <a class="btn btn-sm btn-light mx-1"
+                <div class="dropdown-menu px-0 py-1" aria-labelledby="dropdownVisibility">
+                    <a class="dropdown-item"
                        href="groups/search?GroupsSearchInput=<?= $this->search_terms; ?>&order=<?= $act_order; ?>&<?= $this->pager->getActivePageMarker(); ?>"><?= $words->get('GroupsOrderBy' . $act_order); ?></a>
-                    <a class="btn btn-sm btn-light mx-1"
+                    <a class="dropdown-item"
                        href="groups/search?GroupsSearchInput=<?= $this->search_terms; ?>&order=<?= $name_order; ?>&<?= $this->pager->getActivePageMarker(); ?>"><?= $words->get('GroupsOrderBy' . $name_order); ?></a>
-                    <a class="btn btn-sm btn-light mx-1"
+                    <a class="dropdown-item"
                        href="groups/search?GroupsSearchInput=<?= $this->search_terms; ?>&order=<?= $member_order; ?>&<?= $this->pager->getActivePageMarker(); ?>"><?= $words->get('GroupsOrderBy' . $member_order); ?></a>
-                    <a class="btn btn-sm btn-light mx-1"
+                    <a class="dropdown-item"
                        href="groups/search?GroupsSearchInput=<?= $this->search_terms; ?>&order=<?= $created_order; ?>&<?= $this->pager->getActivePageMarker(); ?>"><?= $words->get('GroupsOrderDate' . $created_order); ?></a>
                 </div>
             </span>
         </div>
+        <?php
+         $this->pager->render();
+         ?>
 
-<?
+
+<div class="col-12">
+    <div class="row">
+<?php
         foreach ($search_result as $group_data) :
 
             include('groupsdisplay.php');
 
         endforeach;
         ?>
-      <div class="order-12 mt-3">
+    </div>
+</div>
 <?php
 $this->pager->render();
 ?>
-      </div>
 <?php else :
     echo <<<HTML
-            <p class="note">
+            <div class="col-12 mt-3"><div class="alert alert-info">
             {$words->get('GroupSearchNoResults')}
-            </p>
+            </div>
+</div>
 HTML;
 endif;
 ?>

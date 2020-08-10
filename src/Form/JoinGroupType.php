@@ -12,9 +12,6 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 class JoinGroupType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -46,6 +43,6 @@ class JoinGroupType extends AbstractType
 
     public function getBlockPrefix()
     {
-        return null;
+        return '';
     }
 }

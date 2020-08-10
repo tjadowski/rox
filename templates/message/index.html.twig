@@ -42,7 +42,7 @@
             </th>
             <th class="from text-center align-middle text-nowrap">
                 <span class="small"><a href="{{ path( _route, { folder: folder, sort: correspondent, dir: 'asc' }) }}">&#x25b2;</a> {{ correspondent | trans | capitalize }} <a href="{{ path( _route, { folder: folder, sort: correspondent, dir: 'desc' }) }}">&#x25bc;</a></span><br>
-                <span class="small"><a href="{{ path( _route, { folder: folder, sort: 'date', dir: 'asc' }) }}">&#x25b2;</a> {{ 'Date' | trans }} <a href="{{ path( _route, { folder: folder, sort: 'date', dir: 'desc' }) }}">&#x25bc;</a></span>
+                <span class="small"><a href="{{ path( _route, { folder: folder, sort: 'date', dir: 'asc' }) }}">&#x25b2;</a> {{ 'date' | trans }} <a href="{{ path( _route, { folder: folder, sort: 'date', dir: 'desc' }) }}">&#x25bc;</a></span>
             </th>
             <th colspan="2" class="align-middle">{{ 'messagestext' | trans }}</th>
         </tr>
@@ -71,9 +71,9 @@
                                 </p>{% endif %}
                     {% set messageText = message.Message | replace({'\n': ' ', '<br />': ' '}) | striptags %}
 
-                    {% spaceless %}
+                    {% apply spaceless %}
                         <p class="m-0 mb-1">{{- messageText | truncate(150) | raw -}}</p>
-                    {% endspaceless %}
+                    {% endapply %}
                     {% if message.request %}
                         <div class="d-flex alert-light p-2">
                             <div class="mr-2 font-weight-bold">
@@ -82,23 +82,24 @@
                                     <i class="fa fa-calendar mr-1"></i>{{ 'request.departure' | trans }}{%- endif %}
                             </div>
                             <div>
-                                {{ message.request.arrival | localizeddate( 'medium', 'none') }}
+                                {{ message.request.arrival | format_date( 'medium') }}
                                 {%- if message.request.departure %}<br>
-                                    {{ message.request.departure | localizeddate( 'medium', 'none') }}{%- endif %}
+                                    {{ message.request.departure | format_date( 'medium') }}{%- endif %}
                             </div>
                         </div>
                     {% endif %}
-                    {# Handle the case where a message/request doesn't have a sent date #}
-                    {% set sentDate %}{% if message.dateSent != '-0001-11-30 00:00:00' %}{{ message.dateSent | localizeddate( 'medium', 'none') }}{% else %}{{ message.updated | localizeddate( 'medium', 'none')}}{% endif %}{% endset %}
-                    <span class="text-muted small">{% trans with {'%sentDate%': sentDate} %}message.sentdate{% endtrans %}</span>
+
+                        <span class="text-muted small">{{ 'message.sentdate'|trans({'%sentDate%': message.dateSent | format_date( 'medium')}) }}</span>
                         </div>
                     </a>
                 </td>
                 <td class="text-right">
-                    <a href="{{ path('message_show', { id: message.id}) }}" class="btn btn-primary btn-sm">{{ 'view' | trans }}</a>
-                    {% if folder == 'inbox' %}<br>
-                    <a href="{{ path('message_reply', { id: message.id}) }}" class="btn btn-primary btn-sm mt-1">{{ 'reply' | trans }}</a>
-                    {% endif %}
+                    <div class="btn-group-vertical">
+                        <a href="{{ path('message_show', { id: message.id}) }}" class="btn btn-primary btn-sm">{{ 'view' | trans }}</a>
+                        {% if folder == 'inbox' %}
+                            <a href="{{ path('message_reply', { id: message.id}) }}" class="btn btn-primary btn-sm">{{ 'reply' | trans }}</a>
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
         {% endfor %}
@@ -111,12 +112,13 @@
                         {% else %}
                             {{ form_widget(form.delete, { 'attr': { 'class': 'btn btn-danger'} }) }}
                         {% endif %}
-                        {{ form_widget(form.spam, { 'attr': { 'class': 'btn btn-light' } }) }}
+                        {% if folder != 'sent' %}
+                            {{ form_widget(form.spam, { 'attr': { 'class': 'btn btn-light' } }) }}
+                        {% endif %}
                     </div>
                 </td>
             </tr>
         </table>
-        <input id="message_index_form__token" name="message_index_form[_token]" value="{{ form._token.vars.value }}" type="hidden">
         {{ form_rest(form) }}
         {{ form_end(form) }}
         {% if items.haveToPaginate %}

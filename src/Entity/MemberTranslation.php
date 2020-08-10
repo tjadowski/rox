@@ -7,6 +7,8 @@
 
 namespace App\Entity;
 
+use Carbon\Carbon;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -28,10 +30,9 @@ use Doctrine\ORM\Mapping as ORM;
 class MemberTranslation
 {
     /**
-     * @var Member
+     * @var int
      *
-     * @ORM\OneToOne(targetEntity="Member", fetch="EXTRA_LAZY")
-     * @ORM\JoinColumn(name="IdOwner", referencedColumnName="id")
+     * @ORM\Column(name="IdOwner", type="integer", nullable=false)
      */
     private $owner;
 
@@ -40,24 +41,24 @@ class MemberTranslation
      *
      * @ORM\Column(name="IdTrad", type="integer", nullable=false)
      */
-    private $idtrad;
+    private $translation;
 
     /**
      * @var Member
      *
      * @ORM\Column(name="IdTranslator", type="integer", nullable=false)
      */
-    private $idtranslator;
+    private $translator;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
-     * @ORM\Column(name="updated", type="datetime", nullable=false)
+     * @ORM\Column(name="updated", type="datetime", nullable=true)
      */
     private $updated;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
@@ -113,7 +114,7 @@ class MemberTranslation
     /**
      * Set owner.
      *
-     * @param Member $owner
+     * @param int $owner
      *
      * @return MemberTranslation
      */
@@ -127,7 +128,7 @@ class MemberTranslation
     /**
      * Get owner.
      *
-     * @return Member
+     * @return int
      */
     public function getOwner()
     {
@@ -135,57 +136,57 @@ class MemberTranslation
     }
 
     /**
-     * Set idtrad.
+     * Set translation.
      *
-     * @param int $idtrad
+     * @param int $translation
      *
      * @return MemberTranslation
      */
-    public function setIdtrad($idtrad)
+    public function setTranslation($translation)
     {
-        $this->idtrad = $idtrad;
+        $this->translation = $translation;
 
         return $this;
     }
 
     /**
-     * Get idtrad.
+     * Get translation.
      *
      * @return int
      */
-    public function getIdtrad()
+    public function getTranslation()
     {
-        return $this->idtrad;
+        return $this->translation;
     }
 
     /**
-     * Set idtranslator.
+     * Set translator.
      *
-     * @param int $idtranslator
+     * @param int $translator
      *
      * @return MemberTranslation
      */
-    public function setIdtranslator($idtranslator)
+    public function setTranslator($translator)
     {
-        $this->idtranslator = $idtranslator;
+        $this->translator = $translator;
 
         return $this;
     }
 
     /**
-     * Get idtranslator.
+     * Get translator.
      *
-     * @return int
+     * @return Member
      */
-    public function getIdtranslator()
+    public function getTranslator()
     {
-        return $this->idtranslator;
+        return $this->translator;
     }
 
     /**
      * Set updated.
      *
-     * @param \DateTime $updated
+     * @param DateTime $updated
      *
      * @return MemberTranslation
      */
@@ -199,17 +200,17 @@ class MemberTranslation
     /**
      * Get updated.
      *
-     * @return \DateTime
+     * @return Carbon
      */
     public function getUpdated()
     {
-        return $this->updated;
+        return Carbon::instance($this->updated);
     }
 
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return MemberTranslation
      */
@@ -223,11 +224,11 @@ class MemberTranslation
     /**
      * Get created.
      *
-     * @return \DateTime
+     * @return Carbon
      */
     public function getCreated()
     {
-        return $this->created;
+        return Carbon::instance($this->created);
     }
 
     /**
@@ -367,8 +368,9 @@ class MemberTranslation
      */
     public function onPrePersist()
     {
-        $this->created = new \DateTime('now');
-        $this->idtrad = random_int(0, 24500000);
+        $this->created = new DateTime('now');
+        $this->updated = $this->created;
+        $this->translation = random_int(0, 24500000);
     }
 
     /**
@@ -378,7 +380,7 @@ class MemberTranslation
      */
     public function onPostPersist()
     {
-        $this->idtrad = $this->id;
+        $this->translation = $this->id;
     }
 
     /**
@@ -388,6 +390,6 @@ class MemberTranslation
      */
     public function onPreUpdate()
     {
-        $this->updated = new \DateTime('now');
+        $this->updated = new DateTime('now');
     }
 }

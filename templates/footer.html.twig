@@ -56,15 +56,17 @@
                 </div>
                 <div class="col-12 mt-1">
                     <a href="{{ url('about') }}" class="font-weight-bold">{{ 'aboutuspage' | trans }}</a> &bull;
-                    <a href="{{ url('terms_french') }}" class="footnav" target="new">{{ 'termsofuse' | trans }}</a> &bull;
-                    <a href="{{ url('privacy') }}" class="footnav" target="new">{{ 'privacy' | trans }}</a> &bull;
+                    <a href="{{ url('donate') }}">{{ 'donate' | trans }}</a> &bull;
+                    <a href="{{ url('terms_of_use', {'locale': app.request.locale}) }}" class="footnav" target="new">{{ 'termsofuse' | trans }}</a> &bull;
+                    <a href="{{ url('privacy_policy', {'locale': app.request.locale}) }}" class="footnav" target="new">{{ 'privacy' | trans }}</a> &bull;
+                    <a href="{{ url('data_rights', {'locale': app.request.locale}) }}" class="footnav" target="new">{{ 'datarights' | trans }}</a> &bull;
                     <a href="{{ url('imprint') }}" class="footnav">{{ 'impressum' | trans }}</a> &bull;
                     <a href="{{ url('about_faq') }}" class="footnav">{{ 'faq' | trans }}</a> &bull;
                     <a href="{{ url('feedback') }}" class="footnav">{{ 'contactus' | trans }}</a> &bull;
                     <a href="{{ url('feedback', { IdCategory: 1, RequestURI: url('homepage')}) }}" class="footnav">{{ 'footer.reportbug' | trans }}</a>
                 </div>
                 <div class="col-12 mt-1">
-                    &copy; 2007 &mdash; {{ "now" | date("Y") }} <a href="http://www.bevolunteer.org/"
+                    &copy; 2007 &mdash; {{ "now" | date("Y") }} <a href="https://www.bevolunteer.org/"
                                                                    target="_blank">BeVolunteer</a> and contributors
 
                     - <em>Running on open source <a class="d-inline" href="https://github.com/bewelcome/rox">BW
@@ -76,24 +78,24 @@
         </div>
     </div>
     {% if is_granted('ROLE_ADMIN_WORDS') and app.session.get('translation_mode') == 'on' %}
-        <div id="translations" class="container">
+        <div id="translations" class="container-lg">
             {% set translations = getTranslations() %}
             {% set collector = translations.collector %}
             {% if collector.messages|length %}
                 <div class="row">
                     <div class="col-12">
-                        <h2>{{ 'Translation information' | trans }}</h2>
+                        <h2>{{ 'translation.information' | trans }}</h2>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-12 metrics">
                         <div class="metric">
-                            <span class="value">{{ collector.locale|default('-') }}</span>
+                            <span class="value">{{ app.request.locale }}</span>
                             <span class="label">Locale</span>
                         </div>
                         <div class="metric">
-                            <span class="value">{{ collector.fallbackLocales|join(', ')|default('-') }}</span>
-                            <span class="label">Fallback locales</span>
+                            <span class="value">en</span>
+                            <span class="label">Fallback Locale</span>
                         </div>
 
 
@@ -101,7 +103,7 @@
                 </div>
                 <div class="row">
                     <div class="col-12">
-                        <h2>{{ 'Translatable items' | trans }}</h2>
+                        <h2>{{ 'translation.translatable' | trans }}</h2>
                     </div>
                 </div>
                 {% block messages %}
@@ -203,7 +205,7 @@
             <thead>
             <tr>
                 {% if state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_DEFINED') %}
-                <th>{{ 'translations.id.and.message' | trans }}|{{ 'translation.domain' | trans }}</th>
+                <th>{{ 'translations.id.and.message' | trans }}</th>
                 <th>{{ 'translations.translated.message' | trans }}</th>
                 <th></th>
                 {% else %}
@@ -216,8 +218,10 @@
             {% for message in messages %}
                 <tr>
                     <td {% if state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_DEFINED') %}class="w-25"{% else %}class="w-100"{% endif %}>
-                        <small class="text-muted">{{ message.id }}|{{ message.domain }}</small>
-                        <p>{{ message.id | trans( {}, message.domain, 'en' ) | truncate(50) }}</p>
+                        <small class="text-muted m-0">{{ message.id }}
+                            {% if not state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_DEFINED') %}|{{ message.domain }}{% endif %}
+                        </small>
+                        <p class="m-0">{{ message.id | trans( {}, message.domain, 'en' ) | truncate(50) }}</p>
                         {% if message.transChoiceNumber is not null %}
                             <small class="newline">(pluralization is used)</small>
                         {% endif %}
@@ -230,18 +234,18 @@
                     </td>
                     {% if state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_DEFINED') %}
                         <td class="w-75">
-                            <small class="invisible text-muted">{{ message.id }}</small>
-                            <p>{{ message.translation | truncate(50)  }}</p>
+                            <small class="m-0 text-muted">{{ message.domain }}</small>
+                            <p class="m-0">{{ message.translation | truncate(50)  }}</p>
                         </td>
                     {% endif %}
-                    <td>
-                        <small>&nbsp;</small>
+                    <td class="text-right">
+                        <small class="m-0">&nbsp;</small>
                         {% if message.state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_DEFINED') %}
                             <a href="{{ url('translation_edit', { code: message.id, locale: app.request.locale }) }}" target="_blank"><i class="fa fa-edit"></i></a>
                         {% endif %}
                         {% if message.state == constant('Symfony\\Component\\Translation\\DataCollectorTranslator::MESSAGE_MISSING') and hasEnglishRights %}
                             {% if message.id %}
-                                <a href="{{ url('translation_create', { code: message.id, locale: locale }) }}" target="_blank"><i class="fa fa-plus"></i></a>
+                                <a href="{{ url('translation_create', { translationId: message.id, domain: message.domain, locale: locale }) }}" target="_blank"><i class="fa fa-plus"></i></a>
                             {% else %}
                                 message.id not correctly set.
                             {% endif %}

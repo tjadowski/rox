@@ -4,44 +4,25 @@ namespace App\Form\CustomDataClass\Translation;
 
 use App\Entity\Word;
 use InvalidArgumentException;
-use Symfony\Component\Validator\Constraints as Assert;
 
-class EditTranslationRequest
+class EditTranslationRequest extends TranslationRequest
 {
     /**
-     * @var string
-     *
-     * @Assert\NotBlank()
+     * @var bool
      */
-    public $wordCode;
+    public $isMajorUpdate;
 
     /**
-     * @var string
-     * @Assert\NotBlank()
+     * @var bool
      */
-    public $locale;
+    public $isArchived;
 
     /**
-     * @var string
-     * @Assert\NotBlank()
+     * @var bool
      */
-    public $englishText;
+    public $doNotTranslate;
 
     /**
-     * @var string
-     */
-    public $description;
-
-    /**
-     * @var string
-     * @Assert\NotBlank()
-     */
-    public $translatedText;
-
-    /**
-     * @param Word $original
-     * @param Word $translation
-     *
      * @throws InvalidArgumentException
      *
      * @return EditTranslationRequest
@@ -54,10 +35,14 @@ class EditTranslationRequest
 
         $editTranslationRequest = new self();
         $editTranslationRequest->wordCode = $original->getCode();
+        $editTranslationRequest->domain = $original->getDomain();
         $editTranslationRequest->englishText = $original->getSentence();
         $editTranslationRequest->description = $original->getDescription();
         $editTranslationRequest->locale = $translation->getShortCode();
         $editTranslationRequest->translatedText = $translation->getSentence();
+        $editTranslationRequest->isMajorUpdate = ($original->getMajorUpdate() > $translation->getUpdated());
+        $editTranslationRequest->isArchived = $original->getIsArchived();
+        $editTranslationRequest->doNotTranslate = ('yes' === $original->getDoNotTranslate());
 
         return $editTranslationRequest;
     }

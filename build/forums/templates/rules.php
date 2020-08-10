@@ -23,9 +23,9 @@ Boston, MA  02111-1307, USA.
 */
 
 $words = new MOD_words(); ?>
-
+<div class="row no-gutters">
 <div class="col-12">
-    <h1><?php echo $words->getFormatted('ForumRulesShort'); ?></h1>
+    <h2><?php echo $words->getFormatted('ForumRulesShort'); ?></h2>
     <h3><?php echo $words->getFormatted('ForumRulesGeneral'); ?></h3>
 
     <h3><?php echo $words->getFormatted('ForumRulesCharterHeadline1'); ?></h3>
@@ -40,7 +40,7 @@ $words = new MOD_words(); ?>
       <li><?php echo $words->getFormatted('ForumRulesCharterText6'); ?></li>
     </ol>
 
-    <h3 class="mt-3"><?php echo $words->getFormatted('ForumRulesHeadline1'); ?></h3>
+    <h3><?php echo $words->getFormatted('ForumRulesHeadline1'); ?></h3>
 
     <h4><?php echo $words->getFormatted('ForumRulesHeadline2'); ?></h4>
     <p><?php echo $words->getFormatted('ForumRulesText1'); ?></p>
@@ -69,4 +69,5 @@ $words = new MOD_words(); ?>
 
     <a id="groups"></a><h4><?php echo $words->getFormatted('ForumRulesDiscussionGroups'); ?></h4>
     <p><?php echo $words->getFormatted('ForumRulesDiscussionGroupsText'); ?></p>
+</div>
 </div>

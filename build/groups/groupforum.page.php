@@ -15,8 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, see <http://www.gnu.org/licenses/> or 
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+along with this program; if not, see <http://www.gnu.org/licenses/> or
+write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 */
 
@@ -31,66 +31,37 @@ Boston, MA  02111-1307, USA.
      * @subpackage Groups
      */
 
-class GroupForumPage extends GroupsBasePage
+class GroupForumPage extends GroupsSubPage
 {
+    public function __construct($group)
+    {
+        parent::__construct($group);
+        $this->addLateLoadScriptFile('build/roxeditor.js');
+        $this->addStylesheet('build/roxeditor.css');
+    }
+
     protected function column_col3()
     {
         $words = $this->getWords();
         if (!$this->member) {
             $loginWidget = $this->layoutkit->createWidget('LoginFormWidget');
             $loginWidget->render();
+        } elseif (!$this->canMemberAccess()) {
+            echo $words->get('GroupsNotPublic');
         } else {
+            $group_id = $this->group->id;
 
-            if (!$this->isGroupMember() && $this->group->Type == 'NeedInvitation') {
-                echo $words->get('GroupsNotPublic');
-            } else {
-                $group_id = $this->group->id;
-
-                $memberlist_widget = new GroupMemberlistWidget();
-                $memberlist_widget->setGroup($this->group);
-
-                $Forums = new ForumsController;
-                $Forums->setEngine($this->engine);
-                $Forums->index('groups');
-                //$forums_widget->setGroup($this->getGroup());
-
-                //include "templates/groupforum.column_col3.php";
-            }
+            $memberlist_widget = new GroupMemberlistWidget();
+            $memberlist_widget->setGroup($this->group);
+            $testVariable = true;
+            $Forums = new ForumsController;
+            $Forums->setEnvironment($this->environment);
+            $Forums->index('group');
         }
     }
 
     protected function getSubmenuActiveItem() {
         return 'forum';
     }
-    
+
 }
-
-
-class GroupForumsOverviewPage extends GroupsBasePage
-{
-    protected function column_col3()
-    {
-        $words = $this->getWords();
-
-    ?>
-        <div class="row">
-    <?php 
-        $Forums = new ForumsController;
-        $Forums->setEngine($this->engine);
-        $Forums->index();
-        ?>
-        </div>
-        <?php
-    }
-    protected function teaserContent()
-    {
-        $words = $this->getWords();
-        ?>
-        <div>
-            <h1><a href="forums"><?= $words->get('CommunityLanding');?></a> &raquo <a href="groups/forums"><?= $words->get('Groups');?></a></h1>
-        </div>
-        <?php
-    }    
-}
-
-?>

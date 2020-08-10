@@ -1,6 +1,6 @@
 <!-- #nav: main navigation -->
 <nav class="navbar navbar-fixed-top" role="navigation">
-  <div class="container">
+  <div class="container-lg">
     <!-- Brand and toggle get grouped for better mobile display -->
     <div class="navbar-header">
       <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bewelcome-navbar-collapse-1">
@@ -58,12 +58,12 @@
                 <li><a href="donate"><?=$words->get('DonateLink')?></a></li>
           </ul>
         </li>
-<? if (isset($volunteer) && $volunteer) { ?>
+<?php if (isset($volunteer) && $volunteer) { ?>
         <li class="dropdown">
           <a href="volunteer" class="dropdown-toggle" data-toggle="dropdown"><?=$words->get('Volunteer')?> <b class="caret"></b></a>
           <?=$this->volunteerMenu() ?>
         </li>
-<? } ?>
+<?php } ?>
         </ul>
         <ul class="nav navbar-nav navbar-right">
         <?php if ($logged_in) { ?>

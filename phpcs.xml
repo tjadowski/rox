@@ -7,14 +7,6 @@
     <arg value="p"/>
 
     <rule ref="PSR1"/>
-    <rule ref="PSR2"/>
-
-    <rule ref="Squiz.Commenting.FunctionCommentThrowTag">
-        <exclude-pattern>tests/*</exclude-pattern>
-    </rule>
-
-    <rule ref="Squiz.Commenting.VariableComment">
-        <exclude-pattern>tests/*</exclude-pattern>
-    </rule>
+    <rule ref="PSR12"/>
 
 </ruleset>

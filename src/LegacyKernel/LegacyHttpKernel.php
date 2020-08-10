@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface;
 use Symfony\Component\HttpKernel\Controller\ControllerResolverInterface;
 use Symfony\Component\HttpKernel\HttpKernel;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Symfony\Component\Templating\EngineInterface;
+use Twig\Environment;
 
 /**
  * Fallback dispatcher for requests that Symfony couldn't match.
@@ -25,9 +25,9 @@ use Symfony\Component\Templating\EngineInterface;
 class LegacyHttpKernel extends HttpKernel
 {
     /**
-     * @var EngineInterface
+     * @var Environment
      */
-    protected $engine;
+    protected $environment;
 
     /**
      * @var Container
@@ -35,14 +35,14 @@ class LegacyHttpKernel extends HttpKernel
     private $container;
 
     public function __construct(
-        EngineInterface $engine,
+        Environment $environment,
         EventDispatcherInterface $dispatcher,
         ControllerResolverInterface $resolver,
         RequestStack $requestStack,
         ArgumentResolverInterface $argumentResolver,
         ContainerInterface $container
     ) {
-        $this->engine = $engine;
+        $this->environment = $environment;
         $this->container = $container;
 
         parent::__construct($dispatcher, $resolver, $requestStack, $argumentResolver);
@@ -54,18 +54,20 @@ class LegacyHttpKernel extends HttpKernel
     }
 
     /**
-     * @param Request $request
-     * @param int     $type
-     * @param bool    $catch
+     * @param int  $type
+     * @param bool $catch
      *
      * @return Response
      *
      * @SuppressWarnings(PHPMD.BooleanArgumentFlag)
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
+     *
+     * The next one is triggered by preg_match. PHP doc says everything's fine with that.
+     * @SuppressWarnings(PHPMD.UndefinedVariable)
      */
     public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
     {
-        $router = new RoxFrontRouter($this->engine);
+        $router = new RoxFrontRouter($this->environment);
         // The only classname ever used
         $router->classes = ['SignupController'];
 

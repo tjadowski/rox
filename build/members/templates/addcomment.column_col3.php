@@ -17,7 +17,7 @@ $edit_mode = $TCom;
 // values from previous form submit
 if (!$mem_redirect = $this->layoutkit->formkit->getMemFromRedirect()) {
     // this is a fresh form
-    $ttRelation = ($TCom) ? explode(',',$TCom->Relation) : array();
+    $ttRelation = ($TCom) ? explode(',',$TCom->relations) : array();
     if ($this->commentGuidelinesRead) {
         $vars["CommentGuidelines"] = 'checked';
     }
@@ -90,7 +90,7 @@ $callback_tag = $formkit->setPostCallback('MembersController', $callbackFunction
 
 
 <?php
-// Display errors from last submit	
+// Display errors from last submit
 if (isset($vars['errors']) && !empty($vars['errors']))
 {
     foreach ($vars['errors'] as $error)
@@ -99,7 +99,7 @@ if (isset($vars['errors']) && !empty($vars['errors']))
     }
 }
 
-// Display the form to propose to add a comment	
+// Display the form to propose to add a comment
 ?>
 <?php
 if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit != 1) {
@@ -109,13 +109,13 @@ if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit !
 <?=$words->flushBuffer();?>
 
 
-<form method="post" name="addcomment" OnSubmit="return DoVerifySubmit('addcomment');">
+<form method="post" name="addcomment">
 <?=$callback_tag ?>
     <?php if ($random == 2) { ?>
     <input type="text" id="sweet" name="sweet" value="" title="Leave free of content" hidden>
     <?php } ?>
 
-    <? /* <h1><?=(!$edit_mode) ? $words->get("AddComments") : $words->get("EditComments")?></h1> */ ?>
+    <?php /* <h1><?=(!$edit_mode) ? $words->get("AddComments") : $words->get("EditComments")?></h1> */ ?>
 
 <input name="IdMember" value="<?=$member->id?>" type="hidden" />
 
@@ -134,7 +134,7 @@ if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit !
                 <i class="fa fa-question"></i>
             </a>
 
-            <select class="custom-select mb-2 mr-sm-2 mb-sm-0" name="Quality" id="Quality">
+            <select class="form-control select2 mb-2 mr-sm-2 mb-sm-0" name="Quality" id="Quality">
                 <option value=""><?=$words->getSilent("CommentQuality_SelectOne")?></option>
                 <option value="Good"
                     <?=(isset($TCom->comQuality) && $TCom->comQuality == "Good") ? " selected " : ""?>
@@ -162,11 +162,11 @@ if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit !
                 ?>
                 <div class="form-check my-2">
                     <label class="form-check-label">
-                        <input class="form-check-input" type="checkbox" id="<?= $chkName; ?>" name="<?= $chkName; ?>"<? if (in_array($ttc[$ii], $ttRelation)) echo ' checked'; ?>>
+                        <input class="form-check-input" type="checkbox" id="<?= $chkName; ?>" name="<?= $chkName; ?>"<?php if (in_array($ttc[$ii], $ttRelation)) echo ' checked'; ?>>
                         <?= $words->get($chkName); ?>
                     </label>
                 </div>
-            <? } ?>
+            <?php } ?>
 
         </div>
 
@@ -183,8 +183,8 @@ if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit !
         </div>
 
         <div class="col-12">
-            <div class="form-check alert alert-warning">
-                <label class="form-check-label">
+            <div class="form-check alertwarning">
+                <label class="form-check-label mb-2">
                     <input type="checkbox" name="CommentGuidelines" class="form-check-input"
                         <?php
                         if (isset ($vars["CommentGuidelines"]))
@@ -202,30 +202,18 @@ if (isset($TCom->comQuality) && $TCom->comQuality == "Bad" && $TCom->AllowEdit !
 
     </div>
 
-
-
 </form>
 
-
 <script type="text/javascript">
-    function DoVerifySubmit(nameform) {
-    nevermet=document.forms[nameform].elements['Comment_NeverMetInRealLife'].checked;
-        if ((document.forms[nameform].elements['Quality'].value=='Good') && (nevermet)) {
-           alert('<?=addslashes($words->getSilent("RuleForNeverMetComment"))?>');
-           return (false);
-        }
-        return(true);
-    }
+    $(function () {
+        $('[data-toggle="popover"]').popover()
+    })
+    $('.popover-dismiss').popover({
+        trigger: 'focus'
+    })
 </script>
-    <script type="text/javascript">
-        $(function () {
-            $('[data-toggle="popover"]').popover()
-        })
-        $('.popover-dismiss').popover({
-            trigger: 'focus'
-        })
-    </script>
-<?php 
-} 
-$words->flushBuffer();?>
+<?php
+}
+$words->flushBuffer();
+
 

@@ -30,7 +30,7 @@ Boston, MA  02111-1307, USA.
      * @package Apps
      * @subpackage Groups
      */
-class GroupMemberSettingsPage extends GroupsBasePage
+class GroupMemberSettingsPage extends GroupsSubPage
 {
     protected function column_col3()
     {
@@ -49,15 +49,7 @@ class GroupMemberSettingsPage extends GroupsBasePage
             $problemmsg = (($redirected->problems) ? "<p class=\"alert-danger p-2\">{$words->get('GroupMemberSettingsProblems')}</p>" : '');
         }
 
-        $a = new APP_User();
-        if (!$a->isBWLoggedIn('NeedMore,Pending'))
-        {
-            $widg = $this->createWidget('LoginFormWidget');
-            $widg->render();
-        }
-        else
-        {
-            $membershipinfo = $this->member->getGroupMembership($this->group);
+        $membershipinfo = $this->member->getGroupMembership($this->group);
         ?>
         <?= $resultmsg; ?>
         <?= $problemmsg; ?>
@@ -77,24 +69,24 @@ class GroupMemberSettingsPage extends GroupsBasePage
 
                     <div class="btn-group w-100" data-toggle="buttons">
                         <label class="btn btn-primary btn-radio <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'yes') ? 'active' : '' ); ?>" for="yes_option">
-                            <input id='yes_option' class="noradio" autocomplete="off" type="radio" value="yes" name="membershipinfo_acceptgroupmail" <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'yes') ? 'checked="checked" ' : '' ); ?>>Yes
+                            <input id='yes_option' class="noradio" autocomplete="off" type="radio" value="yes" name="membershipinfo_acceptgroupmail" <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'yes') ? 'checked="checked" ' : '' ); ?>><?= $words->get('yes'); ?>
                         </label>
                         <label for="no_option" class="btn btn-primary btn-radio <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'no') ? 'active' : '' ); ?>">
-                            <input id='no_option' class="noradio" autocomplete="off" type="radio" value="no" name="membershipinfo_acceptgroupmail" <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'no' || !$membershipinfo->IacceptMassMailFromThisGroup) ? 'checked="checked" ' : '' ); ?>>No
+                            <input id='no_option' class="noradio" autocomplete="off" type="radio" value="no" name="membershipinfo_acceptgroupmail" <?= (($membershipinfo->IacceptMassMailFromThisGroup == 'no' || !$membershipinfo->IacceptMassMailFromThisGroup) ? 'checked="checked" ' : '' ); ?>><?= $words->get('no'); ?>
                         </label>
                     </div>
                 </div>
-            </div>
             <?php if ($membershipinfo->IdMember < 0) { ?>
                 <p><?= $words->get('GroupMemberSettingsDisabledInfo') ?></p>
             <?php } ?>
             <div class="col-12">
             <input type="submit" class="btn btn-primary pull-right" value="<?= $words->getBuffered('GroupsUpdateMemberSettings') ;?>"><?=$words->flushBuffer();?>
             </div>
+            </div>
         </form>
+        </div>
+        </div>
         <?php
-        }
-        echo '</div></div>';
     }
 
     protected function getSubmenuActiveItem() {

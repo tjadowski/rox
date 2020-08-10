@@ -7,7 +7,7 @@
 
 namespace App\Entity;
 
-use App\Doctrine\GroupTypeType;
+use App\Doctrine\GroupType;
 use App\Doctrine\MemberStatusType;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -39,15 +39,15 @@ class Group implements ObjectManagerAware
     const IN_DISCUSSION_CLOSED = 6;
 
     const OPEN = [
-        self::NOT_APPROVED, self::IN_DISCUSSION
+        self::NOT_APPROVED, self::IN_DISCUSSION,
     ];
 
     const HANDLED = [
-        self::APPROVED, self::DISMISSED
+        self::APPROVED, self::DISMISSED,
     ];
 
     const CLOSED = [
-        self::APPROVED_CLOSED, self::DISMISSED_CLOSED, self::IN_DISCUSSION_CLOSED
+        self::APPROVED_CLOSED, self::DISMISSED_CLOSED, self::IN_DISCUSSION_CLOSED,
     ];
 
     /**
@@ -62,7 +62,7 @@ class Group implements ObjectManagerAware
      *
      * @ORM\Column(name="Type", type="group_type", nullable=false)
      */
-    private $type = 'Public';
+    private $type = GroupType::PUBLIC;
 
     /**
      * @var DateTime
@@ -118,7 +118,7 @@ class Group implements ObjectManagerAware
     /**
      * @var bool
      *
-     * @ORM\Column(name="Approved", type="smallint", nullable = true)
+     * @ORM\Column(name="approved", type="smallint", nullable = true)
      */
     private $approved = self::NOT_APPROVED;
 
@@ -251,8 +251,6 @@ class Group implements ObjectManagerAware
     /**
      * Add description.
      *
-     * @param MemberTranslation $description
-     *
      * @return Group
      */
     public function addDescription(MemberTranslation $description)
@@ -267,8 +265,6 @@ class Group implements ObjectManagerAware
 
     /**
      * Remove description.
-     *
-     * @param MemberTranslation $description
      */
     public function removeDescription(MemberTranslation $description)
     {
@@ -335,16 +331,6 @@ class Group implements ObjectManagerAware
     public function getApproved()
     {
         return $this->approved;
-    }
-
-    /**
-     * Triggered on insert.
-     *
-     * @ORM\PrePersist
-     */
-    public function onPrePersist()
-    {
-        $this->created = new DateTime('now');
     }
 
     public function getGroupMemberships()
@@ -447,18 +433,50 @@ class Group implements ObjectManagerAware
 
     public function isPublic()
     {
-        return GroupTypeType::PUBLIC === $this->type;
+        return GroupType::PUBLIC === $this->type;
     }
 
     /**
      * Injects responsible ObjectManager and the ClassMetadata into this persistent object.
      *
-     * @param ObjectManager $objectManager
-     * @param ClassMetadata $classMetadata
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function injectObjectManager(ObjectManager $objectManager, ClassMetadata $classMetadata)
     {
         $this->objectManager = $objectManager;
+    }
+
+    /**
+     * Triggered on insert.
+     *
+     * @ORM\PrePersist
+     */
+    public function onPrePersist()
+    {
+        $this->created = new DateTime('now');
+    }
+
+    public function getMoreInfo(): ?string
+    {
+        return $this->moreInfo;
+    }
+
+    public function setMoreInfo(string $moreInfo): self
+    {
+        $this->moreInfo = $moreInfo;
+
+        return $this;
+    }
+
+    public function getIdDescription(): ?int
+    {
+        return $this->idDescription;
+    }
+
+    public function setIdDescription(int $idDescription): self
+    {
+        $this->idDescription = $idDescription;
+
+        return $this;
     }
 }

@@ -1,8 +1,7 @@
 <?php
 
 use App\Utilities\SessionTrait;
-use Symfony\Component\Asset\Package;
-use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
+use Symfony\WebpackEncoreBundle\Asset\EntrypointLookup;
 
 /**
 * Forums view
@@ -18,21 +17,24 @@ class ForumsView extends RoxAppView {
     use SessionTrait;
 
     private $_model;
+    /** @var PageWithHTML */
     public $page;
     private $words ;
     public $uri;
     public $forum_uri;
     public $BW_Right;
+    private $entryPointLookup;
 
     public function __construct(Forums &$model) {
+        parent::__construct();
         $this->setSession();
         $this->_model =& $model;
         $this->words=$this->_model->words ;
         $this->BW_Right=$this->_model->BW_Right ;
         $this->uri=$this->getURI() ;
         $this->forum_uri='forums' ;
-        $this->page = new stdClass();
-        $this->package = new Package(new JsonManifestVersionStrategy('build/manifest.json'));
+        $this->page = new PageWithHTML();
+        $this->entryPointLookup = new EntrypointLookup('build/entrypoints.json');
     }
 
 
@@ -45,11 +47,12 @@ class ForumsView extends RoxAppView {
     * Create a new topic in the current forum
     */
     public function createTopic(&$callbackId,$IdGroup=0) {
+        $this->page->addStyleSheet('build/roxeditor.css');
+        $this->page->addLateLoadScriptFile('build/cktranslations/'.$this->session->get('lang', 'en').'.js');
+        $this->page->addLateLoadScriptFile('build/roxeditor.js');
+
         $boards = $this->_model->getBoard();
         $allow_title = true;
-        $tags = $this->_model->getTagsNamed();
-        $locationDropdowns = $this->getLocationDropdowns();
-//                           die ("1 IdGroup=".$IdGroup) ;
         $groupsDropdowns = $this->getGroupsDropdowns($IdGroup);
         $edit = false;
 
@@ -92,7 +95,7 @@ class ForumsView extends RoxAppView {
         if ($baseurl === false) {
             $baseurl = $this->uri;
         }
-        return $baseurl.'s'.$thread->threadid.'-'.preg_replace('/[^A-Za-z0-9]/', '_',$this->words->fTrad($thread->IdTitle) ) ;
+        return $baseurl.'s'.$thread->id.'-'.preg_replace('/[^A-Za-z0-9]/', '_',$this->words->fTrad($thread->IdTitle) ) ;
     }
 
     public  function postURL($post, $baseurl = false)
@@ -103,14 +106,26 @@ class ForumsView extends RoxAppView {
         return $baseurl.'s'.$post->threadid.'-'.preg_replace('/[^A-Za-z0-9]/', '_',$this->words->fTrad($post->IdTitle) ) ;
     }
 
+    public  function groupURL($post, $baseurl = false)
+    {
+        if ($baseurl === false) {
+            $baseurl = $this->uri;
+        }
+        return '/group/'.$post->IdGroup;
+    }
+
 
     public function replyTopic(&$callbackId) {
+        $this->page->addStyleSheet('build/roxeditor.css');
+        $this->page->addLateLoadScriptFile('build/cktranslations/'.$this->session->get('lang', 'en').'.js');
+        $this->page->addLateLoadScriptFile('build/roxeditor.js');
+
         $boards = $this->_model->getBoard();
         $topic = $this->_model->getTopic();
         $allow_title = false;
         $edit = false;
         $notifymecheck = "";
-        if ($this->_model->IsThreadSubscribed($topic->IdThread,$this->_session->get("IdMember"))) {
+        if ($this->_model->IsThreadSubscribed($topic->IdThread,$this->session->get("IdMember"))) {
             $notifymecheck = 'checked="checked"' ; // This is to tell that the notifyme cell is preticked
         }
 
@@ -145,17 +160,19 @@ class ForumsView extends RoxAppView {
 
     // This is the normal edit/translate post by a member
     public function editPost(&$callbackId,$translate=false) {
+        $this->page->addStyleSheet('build/roxeditor.css');
+        $this->page->addLateLoadScriptFile('build/cktranslations/'.$this->session->get('lang', 'en').'.js');
+        $this->page->addLateLoadScriptFile('build/roxeditor.js');
+
         $boards = $this->_model->getBoard();
         $topic = $this->_model->getTopic();
         $vars =& PPostHandler::getVars($callbackId);
-        $all_tags = $this->_model->getAllTags();
-        $locationDropdowns = $this->getLocationDropdowns();
         $groupsDropdowns = $this->getGroupsDropdowns($this->_model->IdGroup);
         $allow_title = $vars['first_postid'] == $vars['postid'];
         $edit = true;
         $messageid = $this->_model->getMessageId();
         $notifymecheck = "" ;
-        if ($this->_model->IsThreadSubscribed($this->_model->getThreadId(),$this->_session->get("IdMember"))) {
+        if ($this->_model->IsThreadSubscribed($this->_model->getThreadId(),$this->session->get("IdMember"))) {
             $notifymecheck = 'checked="checked"' ; // This is to tell that the notifyme cell is preticked
         }
         $IdGroup = $this->_model->IdGroup;
@@ -166,14 +183,15 @@ class ForumsView extends RoxAppView {
         // By default no appropriated language is propose, the member can choose to translate
         $LanguageChoices=$this->_model->LanguageChoices() ;
         if (!$translate) { // In case this is a edit, by default force the original post language
-            $IdContent=$this->_model->getIdContent();
-            global $fTradIdLastUsedLanguage ; $fTradIdLastUsedLanguage=1 ; // willbe change by ftrad
+            global $fTradIdLastUsedLanguage ; $fTradIdLastUsedLanguage=1 ; // will be change by ftrad
             $word = new MOD_words();
             // This function is just called for finding the language in which one the post will be displayed
-            $void_string=$word->ftrad($IdContent) ;
             $AppropriatedLanguage=$fTradIdLastUsedLanguage ;
         }
         $disableTinyMCE = $this->_model->getTinyMCEPreference();
+        if ($IdGroup == 0) {
+            $this->renderScriptAndStyleTags = true;
+        }
         require 'templates/editcreateform.php';
     } // end of editPost
 
@@ -184,16 +202,12 @@ class ForumsView extends RoxAppView {
         $boards = $this->_model->getBoard();
         $topic = $this->_model->getTopic();
         $vars =& PPostHandler::getVars($callbackId);
-        $all_tags = $this->_model->getAllTags();
-        $locationDropdowns = $this->getLocationDropdowns();
-//              echo "<pre>";print_r($this->_model->IdGroup) ;;echo "</pre>" ;
-//              die ("\$topic->topicinfo->IdGroup=".$topic->topicinfo->IdGroup) ;
         $groupsDropdowns = $this->getModeratorGroupsDropdowns($this->_model->IdGroup);
         $allow_title = $vars['first_postid'] == $vars['postid'];
         $edit = true;
         $messageid = $this->_model->getMessageId();
         $notifymecheck="";
-        if ($this->_model->IsThreadSubscribed($this->_model->getThreadId(),$this->_session->get("IdMember"))) {
+        if ($this->_model->IsThreadSubscribed($this->_model->getThreadId(),$this->session->get("IdMember"))) {
             $notifymecheck = 'checked="checked"'; // This is to tell that the notifyme cell is preticked
         }
         $AppropriatedLanguage=$this->_model->FindAppropriatedLanguage($vars['first_postid']) ;
@@ -209,7 +223,7 @@ class ForumsView extends RoxAppView {
         $topic = $this->_model->getTopic();
         $request = PRequest::get()->request;
 
-        if (isset($topic->topicinfo->IdGroup) && ($topic->topicinfo->IdGroup > 0) && $this->_session->has( "IdMember" )) {
+        if (isset($topic->topicinfo->IdGroup) && ($topic->topicinfo->IdGroup > 0) && $this->session->has( "IdMember" )) {
              $group_id = $topic->topicinfo->IdGroup;
              $memberIsGroupMember = $this->_model->checkGroupMembership($group_id);
         }
@@ -218,25 +232,12 @@ class ForumsView extends RoxAppView {
             $this->SetPageTitle($this->words->fTrad($topic->topicinfo->IdTitle));
         }
         else {
-            $this->SetPageTitle($topic->topicinfo->title. ' - BeWelcome '.$this->words->getBuffered('Forum'));
+            $this->SetPageTitle('Forums - BeWelcome '.$this->words->getBuffered('Forum'));
         }
-        if (empty($this->_session->get('IdMember')))  {
+        if (empty($this->session->get('IdMember')))  {
             if (isset($topic->posts[0])) {
                 $this->page->SetMetaDescription(strip_tags($this->_model->words->fTrad(($topic->posts[0]->IdContent)))) ; ;
             }
-            $wordtag="" ;
-
-            for ($ii=0;$ii<$topic->topicinfo->NbTags;$ii++) {
-                if ($ii>0) {
-                    $wordtag.=',' ;
-                }
-                $wordtag.=$this->_model->words->fTrad($topic->topicinfo->IdName[$ii]) ;
-            }
-            if ($wordtag!="") {
-                $wordtag.="," ;
-            }
-            $wordtag.=$this->_model->words->getFormatted("default_meta_keyword") ;
-            $this->page->SetMetaKey($wordtag)  ;
         }
 
         $uri = implode('/', $request);
@@ -311,13 +312,13 @@ class ForumsView extends RoxAppView {
     /* This displays the custom teaser */
     public function teaser() {
         $boards = $this->_model->getBoard();
-        $topboards = $this->_model->getTopCategoryLevelTags();
         $request = PRequest::get()->request;
+        $User = $this->_model->getLoggedInMember();
+
         require 'templates/teaser.php';
     }
     public function leftSidebar() {
-        if ($this->_session->has( "IdMember" )) {
-            $topboards = $this->_model->getTopCategoryLevelTags();
+        if ($this->session->has( "IdMember" )) {
             require 'templates/userbar.php';
         }
     }
@@ -396,10 +397,7 @@ class ForumsView extends RoxAppView {
         $forumMaxPage = ceil($forum->getNumberOfThreads() / $forum->THREADS_PER_PAGE);
         $groupsMaxPage = ceil($groups->getNumberOfThreads() / $groups->THREADS_PER_PAGE);
 
-
-        $top_tags = $this->_model->getTopCategoryLevelTags();
-        $all_tags_maximum = $this->_model->getTagsMaximum();
-        $all_tags = $this->_model->getAllTags();
+        $User = $this->_model->getLoggedInMember();
         require 'templates/landing.php';
     } // end of ShowTopLevelLandingPage
 
@@ -419,9 +417,6 @@ class ForumsView extends RoxAppView {
         $max = $this->_model->getBoard()->getNumberOfThreads();
         $maxPage = ceil($max / $this->_model->THREADS_PER_PAGE);
 
-        $top_tags = $this->_model->getTopCategoryLevelTags();
-        $all_tags_maximum = $this->_model->getTagsMaximum();
-        $all_tags = $this->_model->getAllTags();
         require 'templates/toplevel.php';
     } // end of ShowTopLevel
 
@@ -441,9 +436,6 @@ class ForumsView extends RoxAppView {
         $max = $this->_model->getBoard()->getNumberOfThreads();
         $maxPage = ceil($max / $this->_model->THREADS_PER_PAGE);
 
-        $top_tags = $this->_model->getTopCategoryLevelTags();
-        $all_tags_maximum = $this->_model->getTagsMaximum();
-        $all_tags = $this->_model->getAllTags();
         require 'templates/topcategories.php';
     } // end of showTopLevelCategories
 
@@ -531,24 +523,7 @@ class ForumsView extends RoxAppView {
         return $pages;
     }
 
-    public function generateClickableTagSuggestions($tags) {
-        if ($tags) {
-            $out = '';
-            foreach ($tags as $suggestion) {
-                $out .= '<a href="#" onclick="javascript:ForumsSuggest.updateForm(\'';
-                foreach ($suggestion as $word) {
-                    $out .= htmlspecialchars($word, ENT_QUOTES).', ';
-                }
-                $out = rtrim($out, ', ');
-                $out .= '\'); return false;">'.htmlspecialchars($word, ENT_QUOTES).'</a>, ';
-            }
-            $out = rtrim($out, ', ');
-            return $out;
-        }
-        return '';
-    }
-
-    private function getVisibilityCheckbox($visibility, $highestVisibility, $IdGroup, $newTopic) {
+    public function getVisibilityCheckbox($visibility, $highestVisibility, $IdGroup, $newTopic) {
         if ($IdGroup == 0) {
             // Indicate to the form that only MembersOnly is allowed; this is a hack to avoid too much code changes
             return '';
@@ -577,51 +552,6 @@ class ForumsView extends RoxAppView {
         return $out;
     }
 
-    private function getContinentDropdown($preselect = false) {
-        $continents = $this->_model->getAllContinents();
-
-        $out = '<select name="d_continent" id="d_continent" onchange="javascript: updateContinent();">
-        <option value="">' . $this->words->getFormatted("SelectNone") . '</option>';
-        foreach ($continents as $code => $continent) {
-            $out .= '<option value="'.$code.'"'.($code == "$preselect" ? ' selected="selected"' : '').'>'.$continent.'</option>';
-        }
-        $out .= '</select>';
-        return $out;
-    }
-
-    private function getCountryDropdown($continent, $preselect = false) {
-        $countries = $this->_model->getAllCountries($continent);
-        $out = '<select name="d_country" id="d_country" onchange="javascript: updateCountry();">
-            <option value="">' . $this->words->getFormatted("SelectNone") . '</option>';
-        foreach ($countries as $code => $country) {
-            $out .= '<option value="'.$code.'"'.($code == "$preselect" ? ' selected="selected"' : '').'>'.$country.'</option>';
-        }
-        $out .= '</select>';
-        return $out;
-    }
-
-    private function getAreaDropdown($country, $preselect = false) {
-        $areas = $this->_model->getAllAdmincodes($country);
-        $out = '<select name="d_admin" id="d_admin" onchange="javascript: updateAdmincode();">
-            <option value="">' . $this->words->getFormatted("SelectNone") . '</option>';
-        foreach ($areas as $code => $area) {
-            $out .= '<option value="'.$code.'"'.($code == "$preselect" ? ' selected="selected"' : '').'>'.$area.'</option>';
-        }
-        $out .= '</select>';
-        return $out;
-    }
-
-    private function getLocationDropdown($country, $areacode, $preselect = false) {
-        $locations = $this->_model->getAllLocations($country, $areacode);
-        $out = '<select name="d_geoname" id="d_geoname" onchange="javascript: updateGeonames();">
-            <option value="">' . $this->words->getFormatted("SelectNone") . '</option>';
-        foreach ($locations as $code => $location) {
-            $out .= '<option value="'.$code.'"'.($code == "$preselect" ? ' selected="selected"' : '').'>'.$location.'</option>';
-        }
-        $out .= '</select>';
-        return $out;
-    }
-
     private function getGroupsDropdowns($IdGroup=0) {
         $tt = $this->_model->GroupChoice();
         $out = '<select name="IdGroup" id="IdGroup"><option value="0">'. $this->words->getFormatted("SelectNone").'</option>';
@@ -646,28 +576,6 @@ class ForumsView extends RoxAppView {
         return $out;
     } // end of getGroupsDropdowns
 
-
-
-    public function getLocationDropdowns() {
-        $out = '';
-
-        $out .= $this->getContinentDropdown($this->_model->getContinent());
-
-        if ($this->_model->getContinent()) {
-            $out .= $this->getCountryDropdown($this->_model->getContinent(), $this->_model->getCountryCode());
-
-            if ($this->_model->getCountryCode()) {
-                $out .= $this->getAreaDropdown($this->_model->getCountryCode(), $this->_model->getAdminCode());
-
-                if ($this->_model->getAdminCode()) {
-                    $out .= $this->getLocationDropdown($this->_model->getCountryCode(), $this->_model->getAdminCode(), $this->_model->getGeonameid());
-                }
-            }
-        }
-
-        return $out;
-    } // end of getLocationDropdowns
-
 /*
 *       This is the function which is called if the feature is disabled
 */
@@ -676,5 +584,17 @@ class ForumsView extends RoxAppView {
                 $this->SetPageTitle('Feature Closed - Bewelcome') ;
         require 'templates/featureclosed.php';
         } // end of showFeatureIsClosed()
+
+    protected function printScriptAndStyleTags($package)
+    {
+        $stylesheetFiles = $this->entryPointLookup->getCssFiles($package);
+        foreach ($stylesheetFiles as $stylesheetFile) {
+            echo '<link rel="stylesheet" href="' . $stylesheetFile . '">' . PHP_EOL;
+        }
+        $scriptFiles = $this->entryPointLookup->getJavaScriptFiles($package);
+        foreach ($scriptFiles as $scriptFile) {
+            echo '<script type="text/javascript" src="' . $scriptFile . '"></script>' . PHP_EOL;
+        }
+    }
+
 }
-?>

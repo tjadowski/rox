@@ -31,7 +31,7 @@ Boston, MA  02111-1307, USA.
      * @package Apps
      * @subpackage RelatedGroups
      */
-class GroupAddRelatedGroupPage extends GroupsBasePage
+class GroupAddRelatedGroupPage extends GroupsSubPage
 {
     protected function column_col3()
     {
@@ -47,5 +47,3 @@ class GroupAddRelatedGroupPage extends GroupsBasePage
 
 }
 
-
-?>

@@ -30,7 +30,7 @@ Boston, MA  02111-1307, USA.
  * @package Apps
  * @package Groups
  */
-class GroupMemberAdministrationPage extends GroupsBasePage
+class GroupMemberAdministrationPage extends GroupsSubPage
 {
     private function javascript_escape($str)
     {
@@ -42,19 +42,6 @@ class GroupMemberAdministrationPage extends GroupsBasePage
         }
 
         return $new_str;
-    }
-
-    protected function teaserContent()
-    {
-        $layoutkit = $this->layoutkit;
-        $words = $layoutkit->getWords();
-        // &gt; or &raquo; ?
-        ?>
-        <div>
-            <h1><a href="groups"><?= $words->get('Groups'); ?></a> &raquo; <a
-                    href=""><?= $words->get('GroupsAdministrateMembers'); ?></a></h1>
-        </div>
-        <?php
     }
 
     protected function getSubmenuActiveItem()
@@ -74,9 +61,7 @@ class GroupMemberAdministrationPage extends GroupsBasePage
         $invited = $this->group->getMembers('Invited');
 
         ?>
-        <div class="col-12">
-            <h3><?= $words->get('GroupsAdministrateMembers'); ?></h3>
-        </div>
+    <div class="row">
         <div class="col-12">
             <?php $this->pager_widget->render(); ?>
         </div>
@@ -119,11 +104,12 @@ class GroupMemberAdministrationPage extends GroupsBasePage
                     } elseif ($this->member->getPKValue() == $memberid && $BWAdmin) {
                         echo "SuperAdminPower!";
                     } else {
-                        if ($this->group->isGroupOwner($member) && !$BWAdmin) {
+                        $isGroupOwner = $this->group->isGroupOwner($member);
+                        if ( $BWAdmin) {
                             echo "<i class='fa fa-user-cog mr-1 mt-3' title='{$words->getSilent('MemberIsAdmin')}'></i>";
-                        } elseif ($this->group->isGroupOwner($member) && $BWAdmin) {
-                            echo "<i class='fa fa-user-cog' title='{$words->getSilent('MemberIsAdmin')}'></i>";
-                            echo "<div class='btn-group'><a class='kick btn btn-sm btn-warning' href='group/{$groupid}/kickmember/{$memberid}'><i class='fa fa-user-times' title='{$words->getSilent('GroupsKickMember')}'></i></a>";
+                        } elseif ($isGroupOwner) {
+                            echo "<div class='btn-group'><span class='btn btn-sm'><i class='fa fa-user-cog' title='{$words->getSilent('MemberIsAdmin')}'></i></span>";
+                            echo "<a class='kick btn btn-sm btn-warning' href='group/{$groupid}/kickmember/{$memberid}'><i class='fa fa-user-times' title='{$words->getSilent('GroupsKickMember')}'></i></a>";
                             echo "<a class='ban btn btn-sm btn-danger' href='group/{$groupid}/banmember/{$memberid}'><i class='fa fa-user-slash' title='{$words->getSilent('GroupsBanMember')}'></i></a></div>";
                         } else {
                             echo "<div class='btn-group'><a class='addAdmin btn btn-sm btn-info' href='group/{$groupid}/addAdmin/{$memberid}'><i class='fa fa-user-cog' title='{$words->getSilent('GroupsAddAdmin')}'></i></a>";
@@ -138,7 +124,7 @@ class GroupMemberAdministrationPage extends GroupsBasePage
             ?>
             </div>
             <div class="col-12">
-                <?
+                <?php
                 $this->pager_widget->render();
                 ?>
             </div>
@@ -362,6 +348,7 @@ class GroupMemberAdministrationPage extends GroupsBasePage
                 e.preventDefault();
             });
         </script>
+    </div>
 <?php
     }
 }

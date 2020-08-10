@@ -6,14 +6,15 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
 
     <title>
-        {%- spaceless -%}
+        {% apply spaceless %}
             {% if block('title') is defined %}
                 {{ block('title') | trim }} |
             {% endif %} BeWelcome
-        {%- endspaceless -%}
+        {% endapply %}
     </title>
 
     <meta name="description" content="{{ 'default_meta_description' | trans }}">
@@ -23,24 +24,17 @@
     {#{% include '@base/stylesheets.html.twig' %}#}
     {#{% include '@base/scriptfiles.html.twig' with {scriptFiles : earlyScriptFiles} %}#}
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-    <script src="{{ asset('build/backwards.js') }}"></script>
-    <![endif]-->
-
-    <link rel="stylesheet" href="{{ asset('build/bewelcome.css') }}" />
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
+    {{ encore_entry_link_tags('bewelcome') }}
 </head>
 <body>
     <nav class="navbar navbar-sticky-top navbar-expand-md navbar-dark bg-primary navbar-shadow bordert-1 borderb-1">
-        <div class="container">
+        <div class="container-lg">
             <a class="navbar-brand mr-3 float-left" href="{{ url('homepage') }}"><img src="{{ asset('images/logo_index_top.png') }}" alt="BeWelcome"/></a>
         </div>
     </nav>
     <main role="main">
-
-        <noscript><h1>Please activate Javascript for bewelcome.org</h1><p><small>Without it some function won't work.</small></p></noscript>
-        <div class="container">
+        <noscript><div class="container-lg"><div class="alert alert-danger"><p class="h5">You need to activate Javascript for bewelcome.org</p><small>Without it some function won't work.</small></div></div></noscript>
+        <div class="container-lg">
             {% for label, messages in app.flashes %}
                 <div class="row">
                     {% for message in messages %}
@@ -53,13 +47,12 @@
                 </div>
             {% endfor %}
         </div>
-        <div class="container">
+        <div class="container-lg">
             {% block content %}{% endblock %}
         </div>
     </main>
     {% include 'footer.html.twig' %}
-    <script src="{{ asset('build/runtime.js') }}"></script>
-    <script src="{{ asset('build/bewelcome.js') }}"></script>
+    {{ encore_entry_script_tags('bewelcome') }}
     <script type="application/javascript">
         $(".select2").select2({
             theme: 'bootstrap',

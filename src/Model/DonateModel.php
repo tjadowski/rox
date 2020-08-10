@@ -4,6 +4,7 @@ namespace App\Model;
 
 use App\Entity\Params;
 use App\Utilities\ManagerTrait;
+use Carbon\Carbon;
 
 class DonateModel
 {
@@ -23,26 +24,26 @@ class DonateModel
                 FROM
                     donations
                 WHERE
-                    created > '".$campaignValue['campaignstartdate']->format('Y-m-d H:i:s')."'
+                    created > '" . $campaignValue['campaignstartdate']->format('Y-m-d H:i:s') . "'
                 ";
             $connection = $this->getManager()->getConnection();
             $rowYear = $connection->executeQuery($sql)->fetch();
             switch ($rowYear['quarter']) {
                 case 1:
-                    $start = $rowYear['yearnow'].'-01-01';
-                    $end = $rowYear['yearnow'].'-04-01';
+                    $start = $rowYear['yearnow'] . '-01-01';
+                    $end = $rowYear['yearnow'] . '-04-01';
                     break;
                 case 2:
-                    $start = $rowYear['yearnow'].'-04-01';
-                    $end = $rowYear['yearnow'].'-07-01';
+                    $start = $rowYear['yearnow'] . '-04-01';
+                    $end = $rowYear['yearnow'] . '-07-01';
                     break;
                 case 3:
-                    $start = $rowYear['yearnow'].'-07-01';
-                    $end = $rowYear['yearnow'].'-10-01';
+                    $start = $rowYear['yearnow'] . '-07-01';
+                    $end = $rowYear['yearnow'] . '-10-01';
                     break;
                 case 4:
-                    $start = $rowYear['yearnow'].'-10-01';
-                    $end = $rowYear['yearnow'].'-12-31';
+                    $start = $rowYear['yearnow'] . '-10-01';
+                    $end = $rowYear['yearnow'] . '-12-31';
                     break;
             }
             $query = "
@@ -63,10 +64,11 @@ class DonateModel
             $row->YearNeededAmount = $campaignValue['neededperyear'];
             $row->QuarterNeededAmount = $requiredPerMonth * 3;
             $row->YearDonation = $rowYear['YearDonation'];
+            $row->year = Carbon::instance($campaignValue['campaignstartdate'])->year;
 
             return $row;
         }
-        $campaignDetails = new \stdClass();
+        $campaignDetails = new stdClass();
         $campaignDetails->year = 0;
         $campaignDetails->YearNeededAmount = 0;
         $campaignDetails->YearDonation = 0;

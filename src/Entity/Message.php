@@ -101,7 +101,7 @@ class Message
      *
      * @ORM\Column(name="SpamInfo", type="spam_info", nullable=false)
      */
-    private $spamInfo = SpamInfoType::NO_SPAM;
+    private $spaminfo = SpamInfoType::NO_SPAM;
 
     /**
      * @var string
@@ -136,7 +136,7 @@ class Message
     /**
      * @var Subject
      *
-     * @ORM\OneToOne(targetEntity="Subject", cascade={"persist"}, fetch="EAGER")
+     * @ORM\ManyToOne(targetEntity="Subject", cascade={"persist"}, inversedBy="messages")
      *
      * @Assert\NotBlank()
      */
@@ -145,7 +145,7 @@ class Message
     /**
      * @var HostingRequest
      *
-     * @ORM\OneToOne(targetEntity="HostingRequest", cascade={"persist"}, fetch="EAGER")
+     * @ORM\ManyToOne(targetEntity="HostingRequest", cascade={"persist"}, fetch="EAGER", inversedBy="messages")
      * @ORM\JoinColumn(nullable=true)
      */
     private $request;
@@ -220,8 +220,6 @@ class Message
     /**
      * Set datesent.
      *
-     * @param DateTime $dateSent
-     *
      * @return Message
      */
     public function setDateSent(DateTime $dateSent)
@@ -292,8 +290,6 @@ class Message
     /**
      * Set Receiver.
      *
-     * @param Member $receiver
-     *
      * @return Message
      */
     public function setReceiver(Member $receiver)
@@ -315,8 +311,6 @@ class Message
 
     /**
      * Set Sender.
-     *
-     * @param Member $sender
      *
      * @return Message
      */
@@ -340,13 +334,13 @@ class Message
     /**
      * Set spaminfo.
      *
-     * @param string $spamInfo
+     * @param string $spaminfo
      *
      * @return Message
      */
-    public function setSpamInfo($spamInfo)
+    public function setSpaminfo($spaminfo)
     {
-        $this->spamInfo = $spamInfo;
+        $this->spaminfo = $spaminfo;
 
         return $this;
     }
@@ -360,14 +354,14 @@ class Message
      */
     public function removeFromSpaminfo($spaminfo)
     {
-        $info = array_filter(explode(',', $this->spamInfo));
+        $info = array_filter(explode(',', $this->spaminfo));
         $key = array_search($spaminfo, $info, true);
         if (false !== $key) {
             unset($info[$key]);
         }
-        $this->spamInfo = implode(',', $info);
-        if (empty($this->spamInfo)) {
-            $this->spamInfo = SpamInfoType::NO_SPAM;
+        $this->spaminfo = implode(',', $info);
+        if (empty($this->spaminfo)) {
+            $this->spaminfo = SpamInfoType::NO_SPAM;
         }
 
         return $this;
@@ -382,15 +376,15 @@ class Message
      */
     public function addToSpamInfo($spaminfo)
     {
-        if (SpamInfoType::NO_SPAM === $this->spamInfo) {
-            $this->spamInfo = '';
+        if (SpamInfoType::NO_SPAM === $this->spaminfo) {
+            $this->spaminfo = '';
         }
-        $info = array_filter(explode(',', $this->spamInfo));
+        $info = array_filter(explode(',', $this->spaminfo));
         $key = array_search($spaminfo, $info, true);
         if (false === $key) {
             $info[] = $spaminfo;
         }
-        $this->spamInfo = implode(',', $info);
+        $this->spaminfo = implode(',', $info);
 
         return $this;
     }
@@ -400,9 +394,9 @@ class Message
      *
      * @return string
      */
-    public function getSpamInfo()
+    public function getSpaminfo()
     {
-        return $this->spamInfo;
+        return $this->spaminfo;
     }
 
     /**
@@ -561,8 +555,6 @@ class Message
     }
 
     /**
-     * @param Member $member
-     *
      * @return bool
      */
     public function isReceiverDeleted(Member $member)
@@ -584,8 +576,6 @@ class Message
     }
 
     /**
-     * @param Member $member
-     *
      * @return bool
      */
     public function isSenderDeleted(Member $member)
@@ -624,6 +614,7 @@ class Message
     public function onPrePersist()
     {
         $this->created = new \DateTime('now');
+        $this->dateSent = $this->created;
     }
 
     /**
@@ -634,5 +625,12 @@ class Message
     public function onPreUpdate()
     {
         $this->updated = new \DateTime('now');
+    }
+
+    public function setMessageType(string $messageType): self
+    {
+        $this->messageType = $messageType;
+
+        return $this;
     }
 }

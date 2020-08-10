@@ -10,7 +10,7 @@ use App\Entity\Member;
 use App\Entity\Message;
 use App\Entity\Subject;
 use App\Repository\MessageRepository;
-use App\Utilities\MailerTrait;
+use App\Service\Mailer;
 use App\Utilities\ManagerTrait;
 use App\Utilities\TranslatorTrait;
 use Doctrine\DBAL\DBALException;
@@ -27,15 +27,21 @@ use PDO;
  */
 class MessageModel
 {
-    use MailerTrait;
     use ManagerTrait;
     use TranslatorTrait;
 
     /**
+     * @var Mailer
+     */
+    private $mailer;
+
+    public function __construct(Mailer $mailer)
+    {
+        $this->mailer = $mailer;
+    }
+
+    /**
      * Mark a message as purged (can not be unmarked).
-     *
-     * @param Member $member
-     * @param array  $messageIds
      *
      * @throws ORMException
      * @throws OptimisticLockException
@@ -65,9 +71,6 @@ class MessageModel
     }
 
     /**
-     * @param Member $member
-     * @param array  $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -96,9 +99,6 @@ class MessageModel
     }
 
     /**
-     * @param Member $member
-     * @param array  $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -126,8 +126,6 @@ class MessageModel
     }
 
     /**
-     * @param array $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -152,8 +150,6 @@ class MessageModel
     }
 
     /**
-     * @param array $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -181,8 +177,6 @@ class MessageModel
     }
 
     /**
-     * @param array $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -209,8 +203,6 @@ class MessageModel
     }
 
     /**
-     * @param array $messageIds
-     *
      * @throws ORMException
      * @throws OptimisticLockException
      */
@@ -240,7 +232,7 @@ class MessageModel
      * @param int $page
      * @param int $limit
      *
-     * @return \Pagerfanta\Pagerfanta
+     * @return Pagerfanta
      */
     public function getReportedMessages($page = 1, $limit = 10)
     {
@@ -288,6 +280,7 @@ class MessageModel
 
     /**
      * @param $member
+     * @param $folder
      * @param $sort
      * @param $sortDir
      * @param int $page
@@ -295,17 +288,15 @@ class MessageModel
      *
      * @return Pagerfanta
      */
-    public function getFilteredRequestsAndMessages($member, $sort, $sortDir, $page = 1, $limit = 10)
+    public function getFilteredRequestsAndMessages($member, $folder, $sort, $sortDir, $page = 1, $limit = 10)
     {
         /** @var MessageRepository $repository */
         $repository = $this->getManager()->getRepository(Message::class);
 
-        return $repository->findLatestRequestsAndMessages($member, $sort, $sortDir, $page, $limit);
+        return $repository->findLatestRequestsAndMessages($member, $folder, $sort, $sortDir, $page, $limit);
     }
 
     /**
-     * @param Member $member
-     * @param Member $other
      * @param $sort
      * @param $sortDir
      * @param int $page
@@ -324,67 +315,61 @@ class MessageModel
     /**
      * Returns the thread that contains the given message.
      *
-     * @param Message $message
-     *
      * @return Message[]
      */
     public function getThreadForMessage(Message $message)
     {
-        $result = [];
-        try {
-            $connection = $this->getManager()->getConnection();
-            $stmt = $connection->prepare('
-                SELECT 
-                    id
+        $connection = $this->getManager()->getConnection();
+        $stmt = $connection->prepare('
+            SELECT
+                id
+            FROM
+            (SELECT
+                    id, parent, IF(ancestry, @cl:=@cl + 1, level + @cl) AS level
                 FROM
-                (SELECT 
-                        id, parent, IF(ancestry, @cl:=@cl + 1, level + @cl) AS level
-                    FROM
-                    (SELECT 
-                        TRUE AS ancestry, _id AS id, parent, level
-                    FROM
-                    (SELECT 
-                        @r AS _id,
-                            (SELECT 
-                                    @r:=Idparent
-                                FROM
-                                    messages
-                                WHERE
-                                    id = _id) AS parent,
-                            @l:=@l + 1 AS level
-                    FROM
-                    (SELECT @r:=:message_id, @l:=0, @cl:=0) vars, messages h
-                    WHERE
-                        @r <> 0
-                    ORDER BY level DESC) qi UNION ALL SELECT 
-                        FALSE, hi.id, Idparent, level
-                    FROM
-                    (SELECT 
-                        HIERARCHY_CONNECT_BY_PARENT_EQ_PRIOR_ID(id) AS id,
-                            @level AS level
-                    FROM
-                    (SELECT @start_with:=:message_id, @id:=@start_with, @level:=0) vars, messages
-                    WHERE
-                        @id IS NOT NULL) ho
-                    JOIN messages hi ON hi.id = ho.id) q) q2
-                ORDER BY level
-            ');
-            $stmt->execute([':message_id' => $message->getId()]);
-            $ids = $stmt->fetchAll(PDO::FETCH_NUM);
-            $ids = array_map(
-                function ($value) {
-                    return $value[0];
-                },
-                $ids
-            );
-            /** @var MessageRepository $repository */
-            $repository = $this->getManager()->getRepository(Message::class);
-            $result = $repository->findBy(
-                ['id' => $ids],
-                ['created' => 'DESC']
-            );
-        } catch (DBALException $e) {
-        }
+                (SELECT
+                    TRUE AS ancestry, _id AS id, parent, level
+                FROM
+                (SELECT
+                    @r AS _id,
+                        (SELECT
+                                @r:=Idparent
+                            FROM
+                                messages
+                            WHERE
+                                id = _id) AS parent,
+                        @l:=@l + 1 AS level
+                FROM
+                (SELECT @r:=:message_id, @l:=0, @cl:=0) vars, messages h
+                WHERE
+                    @r <> 0
+                ORDER BY level DESC) qi UNION ALL SELECT
+                    FALSE, hi.id, Idparent, level
+                FROM
+                (SELECT
+                    HIERARCHY_CONNECT_BY_PARENT_EQ_PRIOR_ID(id) AS id,
+                        @level AS level
+                FROM
+                (SELECT @start_with:=:message_id, @id:=@start_with, @level:=0) vars, messages
+                WHERE
+                    @id IS NOT NULL) ho
+                JOIN messages hi ON hi.id = ho.id) q) q2
+            ORDER BY level
+        ');
+        $stmt->execute([':message_id' => $message->getId()]);
+        $ids = $stmt->fetchAll(PDO::FETCH_NUM);
+        $ids = array_map(
+            function ($value) {
+                return $value[0];
+            },
+            $ids
+        );
+        /** @var MessageRepository $repository */
+        $repository = $this->getManager()->getRepository(Message::class);
+        $result = $repository->findBy(
+            ['id' => $ids],
+            ['created' => 'DESC']
+        );
 
         return $result;
     }
@@ -400,8 +385,6 @@ class MessageModel
      */
     public function hasMessageLimitExceeded($member, $perHour, $perDay)
     {
-        $id = $member->getId();
-
         $sql = "
             SELECT
                 (
@@ -421,14 +404,15 @@ class MessageModel
                     messages
                 WHERE
                     messages.IdSender = :id
+                    AND messages.request_id IS NULL
                     AND
                     (
                         Status = 'ToSend'
                         OR
                         Status = 'Sent'
-                        AND
-                        DateSent > DATE_SUB(NOW(), INTERVAL 1 HOUR)
                     )
+                    AND
+                    DateSent > DATE_SUB(NOW(), INTERVAL 1 HOUR)
                 ) AS numberOfMessagesLastHour,
                 (
                 SELECT
@@ -437,55 +421,87 @@ class MessageModel
                     messages
                 WHERE
                     messages.IdSender = :id
+                    AND messages.request_id IS NULL
                     AND
                     (
                         Status = 'ToSend'
                         OR
                         Status = 'Sent'
-                        AND
-                        DateSent > DATE_SUB(NOW(), INTERVAL 1 DAY)
                     )
+                    AND
+                    DateSent > DATE_SUB(NOW(), INTERVAL 1 DAY)
                 ) AS numberOfMessagesLastDay
             ";
-        $connection = $this->getManager()->getConnection();
 
-        $row = null;
-        try {
-            $query = $connection->prepare($sql);
-            $query->bindValue(':id', $id);
+        return $this->hasLimitExceeded($member, $sql, $perHour, $perDay);
+    }
 
-            $result = $query->execute();
-            if ($result) {
-                $row = $query->fetchAll(PDO::FETCH_OBJ);
-            }
-        } catch (DBALException $e) {
-            return false;
-        }
+    /**
+     * Tests if a member has exceeded its limit for sending messages.
+     *
+     * @param Member $member
+     * @param int    $perHour
+     * @param int    $perDay
+     *
+     * @return bool
+     */
+    public function hasRequestLimitExceeded($member, $perHour, $perDay)
+    {
+        $sql = "
+            SELECT
+                (
+                SELECT
+                    COUNT(*)
+                FROM
+                    comments
+                WHERE
+                    comments.IdToMember = :id
+                    AND
+                    comments.Quality = 'Good'
+                ) AS numberOfComments,
+                (
+                SELECT
+                    COUNT(*)
+                FROM
+                    messages
+                WHERE
+                    messages.IdSender = :id
+                    AND NOT messages.request_id IS NULL
+                    AND
+                    (
+                        Status = 'ToSend'
+                        OR
+                        Status = 'Sent'
+                    )
+                    AND
+                    DateSent > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                ) AS numberOfMessagesLastHour,
+                (
+                SELECT
+                    COUNT(*)
+                FROM
+                    messages
+                WHERE
+                    messages.IdSender = :id
+                    AND NOT messages.request_id IS NULL
+                    AND
+                    (
+                        Status = 'ToSend'
+                        OR
+                        Status = 'Sent'
+                    )
+                    AND
+                    DateSent > DATE_SUB(NOW(), INTERVAL 1 DAY)
+                ) AS numberOfMessagesLastDay
+            ";
 
-        if (null === $row) {
-            return false;
-        }
-
-        $comments = $row[0]->numberOfComments;
-        $lastHour = $row[0]->numberOfMessagesLastHour;
-        $lastDay = $row[0]->numberOfMessagesLastDay;
-
-        if ($comments < 1 && (
-                $lastHour >= $perHour ||
-                $lastDay >= $perDay)) {
-            return true;
-        }
-
-        return false;
+        return $this->hasLimitExceeded($member, $sql, $perHour, $perDay);
     }
 
     /**
      * Creates a new message and stores it into the database afterwards sends an notification to the receiver
      * Only used for messages therefore request is set to null!
      *
-     * @param Member       $sender
-     * @param Member       $receiver
-     * @param Message|null $parent
      * @param $subjectText
      * @param $body
      *
@@ -518,13 +534,11 @@ class MessageModel
         $em->persist($message);
         $em->flush();
 
-        // \todo Send email notification
-        $this->sendTemplateEmail($sender, $receiver, 'message', [
-            'sender' => $sender,
-            'receiver' => $receiver,
+        $this->mailer->sendMessageNotificationEmail($sender, $receiver, 'message', [
             'message' => $message,
             'subject' => $subjectText,
             'body' => $body,
+
         ]);
 
         return $message;
@@ -540,4 +554,68 @@ class MessageModel
 
         return [$thread, $first, $last, $guest, $host];
     }
+
+    private function hasLimitExceeded(Member $member, string $sql, int $perHour, int $perDay): bool
+    {
+        $id = $member->getId();
+
+        $connection = $this->getManager()->getConnection();
+
+        $row = null;
+        try {
+            $query = $connection->prepare($sql);
+            $query->bindValue(':id', $id);
+
+            $result = $query->execute();
+            if ($result) {
+                $row = $query->fetchAll(PDO::FETCH_OBJ);
+            }
+        } catch (DBALException $e) {
+            return false;
+        }
+
+        if (null === $row) {
+            return false;
+        }
+
+        $comments = $row[0]->numberOfComments;
+        $lastHour = $row[0]->numberOfMessagesLastHour;
+        $lastDay = $row[0]->numberOfMessagesLastDay;
+
+        if (
+            $comments < 1 && (
+                $lastHour >= $perHour ||
+                $lastDay >= $perDay)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * The requestChanged parameter triggers a PHPMD warning which is out of place in this case
+     * @SuppressWarnings(PHPMD.BooleanArgumentFlag)
+     */
+    public function sendRequestNotification(
+        Member $sender,
+        Member $receiver,
+        Member $host,
+        Message $request,
+        $subject,
+        $template,
+        $requestChanged
+    ) {
+        // Send mail notification
+        $this->mailer->sendMessageNotificationEmail($sender, $receiver, $template, [
+            'host' => $host,
+            'subject' => $subject,
+            'message' => $request,
+            'request' => $request->getRequest(),
+            'changed' => $requestChanged,
+        ]);
+
+        return true;
+    }
+
 }

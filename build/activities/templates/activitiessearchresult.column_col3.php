@@ -3,13 +3,13 @@ $formkit = $this->layoutkit->formkit;
 $callbackTags = $formkit->setPostCallback('ActivitiesController', 'searchActivitiesCallback');
 
 $errors = array();
-if ($this->_session->has( 'errors' )) {
-    $errors = $this->_session->get('errors');
-    $this->_session->remove('errors');
+if ($this->session->has( 'errors' )) {
+    $errors = $this->session->get('errors');
+    $this->session->remove('errors');
 }
 ?>
 <div class="row">
-<?
+<?php
 if (!empty($errors)) {
     echo '<div class="col-12 alert alert-danger">';
     foreach($errors as $error) {
@@ -32,7 +32,7 @@ if (!empty($errors)) {
     </div>
 
     <div class="col-12">
-<?php 
+<?php
 if ($this->keyword != '') {
     if (count($this->activities) == 0) {
         if ($this->public) {

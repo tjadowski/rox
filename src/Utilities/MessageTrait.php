@@ -5,50 +5,53 @@ namespace App\Utilities;
 use App\Entity\Member;
 use App\Entity\Message;
 use App\Entity\Subject;
-use Doctrine\ORM\OptimisticLockException;
-use Doctrine\ORM\ORMException;
-use Symfony\Component\Templating\EngineInterface;
+use Twig\Environment;
 
 trait MessageTrait
 {
-    use ManagerTrait;
     use TranslatorTrait;
 
-    /** @var EngineInterface */
-    private $engine;
+    /**
+     * Twig environment used to render templates.
+     *
+     * @var Environment
+     */
+    private $environment;
 
     /**
      * @Required
-     *
-     * @param EngineInterface $engine
      */
-    public function setEngine(EngineInterface $engine)
+    public function setTwigEnvironment(Environment $environment)
     {
-        $this->engine = $engine;
+        $this->environment = $environment;
     }
 
-    protected function getEngine()
+    protected function getEnvironment()
     {
-        return $this->engine;
+        return $this->environment;
     }
 
     /**
-     * @param Member $sender
-     * @param Member $receiver
-     * @param string $template
-     * @param mixed  ...$params
-     *
-     * @throws ORMException
-     * @throws OptimisticLockException
+     * @param mixed ...$params
      */
-    protected function createTemplateMessage(Member $sender, Member $receiver, string $template, ...$params)
-    {
+    protected function createTemplateMessage(
+        Member $sender,
+        Member $receiver,
+        string $template,
+        ...$params
+    ) {
         $parameters = array_merge(['sender' => $sender, 'receiver' => $receiver], ...$params);
 
         $em = $this->getManager();
 
         $this->setTranslatorLocale($receiver);
-        $subjectText = $this->getTranslator()->trans($parameters['subject']);
+        $subject = $parameters['subject'];
+        $translator = $this->getTranslator();
+        if (\is_array($subject)) {
+            $subjectText = $translator->trans($subject['translationId'], $subject['parameters']);
+        } else {
+            $subjectText = $translator->trans($subject);
+        }
         $subject = new Subject();
         $subject->setSubject($subjectText);
         $em->persist($subject);
@@ -59,11 +62,10 @@ trait MessageTrait
         $message->setReceiver($receiver);
         $message->setSubject($subject);
 
-        $body = $this->getEngine()->render($template, $parameters);
+        $body = $this->getEnvironment()->render( $template . '.html.twig', $parameters);
         $message->setMessage($body);
         $em->persist($message);
         $em->flush();
-
         $this->setTranslatorLocale($sender);
     }
 }

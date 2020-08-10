@@ -2,16 +2,14 @@
 
 namespace App\Twig;
 
-use App\Entity\Activity;
 use App\Entity\Comment;
 use App\Entity\Group;
+use App\Entity\LoginMessage;
 use App\Entity\Member;
 use App\Entity\Message;
-use App\Entity\Notification;
-use App\Repository\ActivityRepository;
 use App\Repository\CommentRepository;
+use App\Repository\LoginMessageRepository;
 use App\Repository\MessageRepository;
-use App\Repository\NotificationRepository;
 use App\Utilities\ManagerTrait;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -24,6 +22,84 @@ use Twig\Extension\GlobalsInterface;
 class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
 {
     use ManagerTrait;
+
+    private const ALL_TEAMS = [
+        'communitynews' => [
+            'trans' => 'AdminCommunityNews',
+            'rights' => [Member::ROLE_ADMIN_COMMUNITYNEWS],
+            'route' => 'admin_communitynews_overview',
+        ],
+        'words' => [
+            'trans' => 'AdminWord',
+            'rights' => [Member::ROLE_ADMIN_WORDS],
+            'route' => 'translations',
+        ],
+        'flags' => [
+            'trans' => 'AdminFlags',
+            'rights' => [Member::ROLE_ADMIN_FLAGS],
+            'route' => 'admin_flags',
+        ],
+        'rights' => [
+            'trans' => 'AdminRights',
+            'rights' => [Member::ROLE_ADMIN_RIGHTS],
+            'route' => 'admin_rights_members',
+        ],
+        'logs' => [
+            'trans' => 'AdminLogs',
+            'rights' => [Member::ROLE_ADMIN_LOGS],
+            'route' => 'admin_logs_overview',
+        ],
+        'comments' => [
+            'trans' => 'AdminComments',
+            'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_COMMENTS],
+            'route' => 'admin_comment_overview',
+        ],
+        'checker' => [
+            'trans' => 'AdminChecker',
+            'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_CHECKER],
+            'route' => 'admin_spam_activities',
+        ],
+        'newmembersbewelcome' => [
+            'trans' => 'AdminNewMembers',
+            'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_NEWMEMBERSBEWELCOME],
+            'route' => 'newmembers',
+        ],
+        'massmail' => [
+            'trans' => 'AdminMassMail',
+            'rights' => [Member::ROLE_ADMIN_MASSMAIL],
+            'route' => 'admin_massmail',
+        ],
+        'treasurer' => [
+            'trans' => 'AdminTreasurer',
+            'rights' => [Member::ROLE_ADMIN_TREASURER],
+            'route' => 'admin_treasurer_overview',
+        ],
+        'faq' => [
+            'trans' => 'AdminFAQ',
+            'rights' => [Member::ROLE_ADMIN_FAQ],
+            'route' => 'admin_faqs_overview',
+        ],
+        'group' => [
+            'trans' => 'AdminGroup',
+            'rights' => [Member::ROLE_ADMIN_GROUP],
+            'route' => 'admin_groups_approval',
+            'minimum_level' => 10,
+        ],
+        'tools' => [
+            'trans' => 'AdminVolunteerTools',
+            'rights' => [
+                Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_ADMIN,
+                Member::ROLE_ADMIN_SQLFORVOLUNTEERS, Member::ROLE_ADMIN_PROFILE,
+                Member::ROLE_ADMIN_CHECKER, Member::ROLE_ADMIN_ACCEPTER,
+            ],
+            'route' => 'admin_volunteer_tools',
+        ],
+        'polls' => [
+            'trans' => 'AdminPolls',
+            'rights' => [Member::ROLE_ADMIN_POLL],
+            'route' => 'polls',
+        ],
+    ];
 
     /**
      * @var Session
@@ -47,10 +123,6 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
 
     /**
      * MemberTwigExtension constructor.
-     *
-     * @param SessionInterface $session
-     * @param RouterInterface  $router
-     * @param Security         $security
      */
     public function __construct(
         SessionInterface $session,
@@ -66,22 +138,21 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
     /**
      * @return array
      */
-    public function getGlobals()
+    public function getGlobals(): array
     {
-        $teams = null;
-        if (null !== $this->member) {
-            $roles = $this->security->getUser()->getRoles();
-            $teams = $this->getTeams($roles);
+        if (null === $this->member) {
+            return [];
         }
 
+        $teams = $this->getTeams();
+
         return [
-            'groupsInApprovalQueue' => $this->member ? $this->getGroupsInApprovalQueueCount() : null,
-            'reportedCommentsCount' => $this->member ? $this->getReportedCommentsCount() : null,
-            'reportedMessagesCount' => $this->member ? $this->getReportedMessagesCount() : null,
-            'messageCount' => $this->member ? $this->getUnreadMessagesCount() : null,
-            'requestCount' => $this->member ? $this->getUnreadRequestsCount() : null,
-            'notificationCount' => $this->member ? $this->getUncheckedNotificationsCount() : null,
-            'activityCount' => $this->member ? $this->getUpcomingAroundLocationCount() : null,
+            'loginmessages' => $this->getLoginMessages(),
+            'groupsInApprovalQueue' => $this->getGroupsInApprovalQueueCount(),
+            'reportedCommentsCount' => $this->getReportedCommentsCount(),
+            'reportedMessagesCount' => $this->getReportedMessagesCount(),
+            'messageCount' => $this->getUnreadMessagesCount(),
+            'requestCount' => $this->getUnreadRequestsCount(),
             'teams' => $teams,
         ];
     }
@@ -92,88 +163,21 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
     }
 
     /**
-     * @param array $roles
-     *
      * @return array
      */
-    protected function getTeams($roles)
+    protected function getTeams()
     {
-        $allTeams = [
-            'communitynews' => [
-                'trans' => 'AdminCommunityNews',
-                'rights' => [Member::ROLE_ADMIN_COMMUNITYNEWS],
-                'route' => 'admin_communitynews_overview',
-            ],
-            'words' => [
-                'trans' => 'AdminWord',
-                'rights' => [Member::ROLE_ADMIN_WORDS],
-                'route' => 'translations',
-            ],
-            'flags' => [
-                'trans' => 'AdminFlags',
-                'rights' => [Member::ROLE_ADMIN_FLAGS],
-                'route' => 'admin_flags',
-            ],
-            'rights' => [
-                'trans' => 'AdminRights',
-                'rights' => [Member::ROLE_ADMIN_RIGHTS],
-                'route' => 'admin_rights',
-            ],
-            'logs' => [
-                'trans' => 'AdminLogs',
-                'rights' => [Member::ROLE_ADMIN_LOGS],
-                'route' => 'admin_logs_overview',
-            ],
-            'comments' => [
-                'trans' => 'AdminComments',
-                'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_COMMENTS],
-                'route' => 'admin_comment_overview',
-            ],
-            'newmembersbewelcome' => [
-                'trans' => 'AdminNewMembers',
-                'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_NEWMEMBERSBEWELCOME],
-                'route' => 'newmembers',
-            ],
-            'massmail' => [
-                'trans' => 'AdminMassMail',
-                'rights' => [Member::ROLE_ADMIN_MASSMAIL],
-                'route' => 'admin_massmail',
-            ],
-            'treasurer' => [
-                'trans' => 'AdminTreasurer',
-                'rights' => [Member::ROLE_ADMIN_TREASURER],
-                'route' => 'admin_treasurer_overview',
-            ],
-            'faq' => [
-                'trans' => 'AdminFAQ',
-                'rights' => [Member::ROLE_ADMIN_FAQ],
-                'route' => 'admin_faqs_overview',
-            ],
-            'group' => [
-                'trans' => 'AdminGroup',
-                'rights' => [Member::ROLE_ADMIN_GROUP],
-                'route' => 'admin_groups_approval',
-                'minimum_level' => 10,
-            ],
-            'tools' => [
-                'trans' => 'AdminVolunteerTools',
-                'rights' => [Member::ROLE_ADMIN_SAFETYTEAM, Member::ROLE_ADMIN_ADMIN,
-                    Member::ROLE_ADMIN_SQLFORVOLUNTEERS, Member::ROLE_ADMIN_PROFILE,
-                    Member::ROLE_ADMIN_CHECKER, Member::ROLE_ADMIN_ACCEPTER,
-                ],
-                'route' => 'admin_volunteer_tools',
-            ],
-        ];
+        $roles = $this->security->getUser()->getRoles();
 
         $teams = [];
         $assignedTeams = [];
-        foreach ($allTeams as $name => $team) {
+        foreach (self::ALL_TEAMS as $name => $team) {
             foreach ($roles as $role) {
                 if (!\in_array($name, $assignedTeams, true)) {
-                    if (\in_array($role->getRole(), $team['rights'], true)) {
+                    if (\in_array($role, $team['rights'], true)) {
                         $add = true;
                         if (isset($team['minimum_level'])) {
-                            $level = $this->member->getLevelForRight($role->getRole());
+                            $level = $this->member->getLevelForRight($role);
                             if ($level !== $team['minimum_level']) {
                                 $add = false;
                             }
@@ -198,7 +202,7 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
         $groupsInApprovalCount = null;
         if ($this->security->isGranted(Member::ROLE_ADMIN_GROUP)) {
             $level = $this->member->getLevelForRight(Member::ROLE_ADMIN_GROUP);
-            if ($level == 10) {
+            if (10 === $level) {
                 $groupsRepository = $this->getManager()->getRepository(Group::class);
                 $groups = $groupsRepository->findBy([
                     'approved' => Group::OPEN,
@@ -213,8 +217,10 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
     protected function getReportedCommentsCount()
     {
         $reportedCommentsCount = null;
-        if ($this->security->isGranted(Member::ROLE_ADMIN_COMMENTS) ||
-                $this->security->isGranted(Member::ROLE_ADMIN_SAFETYTEAM)) {
+        if (
+            $this->security->isGranted(Member::ROLE_ADMIN_COMMENTS) ||
+            $this->security->isGranted(Member::ROLE_ADMIN_SAFETYTEAM)
+        ) {
             /** @var CommentRepository $commentRepository */
             $commentRepository = $this->getManager()->getRepository(Comment::class);
             $reportedCommentsCount = $commentRepository->getReportedCommentsCount();
@@ -226,8 +232,10 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
     protected function getReportedMessagesCount()
     {
         $reportedMessagesCount = null;
-        if ($this->security->isGranted(Member::ROLE_ADMIN_CHECKER) ||
-                $this->security->isGranted(Member::ROLE_ADMIN_SAFETYTEAM)) {
+        if (
+            $this->security->isGranted(Member::ROLE_ADMIN_CHECKER) ||
+            $this->security->isGranted(Member::ROLE_ADMIN_SAFETYTEAM)
+        ) {
             /** @var MessageRepository $messageRepository */
             $messageRepository = $this->getManager()->getRepository(Message::class);
 
@@ -253,22 +261,14 @@ class MemberTwigExtension extends AbstractExtension implements GlobalsInterface
         return $messageRepository->getUnreadRequestsCount($this->member);
     }
 
-    protected function getUncheckedNotificationsCount()
-    {
-        /** @var NotificationRepository $notificationRepository */
-        $notificationRepository = $this->getManager()->getRepository(Notification::class);
-
-        return $notificationRepository->getUncheckedNotificationsCount($this->member);
-    }
-
     /**
      * @return int
      */
-    protected function getUpcomingAroundLocationCount()
+    protected function getLoginMessages()
     {
-        /** @var ActivityRepository $activityRepository */
-        $activityRepository = $this->getManager()->getRepository(Activity::class);
+        /** @var LoginMessageRepository $loginMessagsRepository */
+        $loginMessageRepository = $this->getManager()->getRepository(LoginMessage::class);
 
-        return $activityRepository->getUpcomingAroundLocationCount($this->member->getCity());
+        return $loginMessageRepository->getLoginMessages($this->member);
     }
 }

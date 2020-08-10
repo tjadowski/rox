@@ -10,13 +10,14 @@
 $active_menu_item = $this->getSubmenuActiveItem();
 foreach ($this->getSubmenuItems() as $index => $item) {
     $name = $item[0];
+    if ('separator' === $name) {
+        echo '</div><div class="list-group mb-2">';
+        continue;
+    }
     $url = $item[1];
     $label = $item[2];
-    if ($name === $active_menu_item) {
-        echo '<span class="list-group-item nav-link active">' . $label . '</span>';
-    } else {
-        echo '<a class="list-group-item nav-link" href="' . $url . '">' . $label . '</a>';
-    }
+    $active = ($name === $active_menu_item) ? " active" : "";
+    echo '<a class="list-group-item nav-link' . $active .'" href="' . $url . '">' . $label . '</a>';
 
     ?>
       <?=$words->flushBuffer(); ?>

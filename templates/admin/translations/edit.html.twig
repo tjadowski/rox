@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}
-    {{ 'translations.title' | trans }}
+    {{ 'translations.edit.title' | trans }}
 {% endblock %}
 
 {% block content %}
@@ -9,9 +9,19 @@
     {{ form_start(form) }}
     {{ form_row(form.wordCode) }}
     {{ form_row(form.locale) }}
+    {{ form_row(form.domain) }}
     {{ form_row(form.description) }}
     {{ form_row(form.englishText) }}
     {{ form_row(form.translatedText) }}
+    {% if form.isMajorUpdate is defined %}
+        {{ form_row(form.isMajorUpdate) }}
+    {% endif %}
+    {% if form.isArchived is defined %}
+        {{ form_row(form.isArchived) }}
+    {% endif %}
+    {% if form.doNotTranslate is defined %}
+        {{ form_row(form.doNotTranslate) }}
+    {% endif %}
     {{ form_row(form.update) }}
     {{ form_end(form) }}
 {% endblock content %}

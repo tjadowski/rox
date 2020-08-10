@@ -1,11 +1,17 @@
 <p>
-    {% trans with {'%username%': receiver.Username} %}email.greeting{% endtrans %}<br><br>
-    {% trans with {'%groupname%': group.Name} %}You have been invited to the group "%groupname%".{% endtrans %}
+{{ 'group.invitation.groupname'|trans({'groupname': group.name}) }}
 </p>
 <p>
-    {% trans with {'%accept_start': accept_start, '%accept_end': accept_end} %}If you would like to join the group, click the following link: %accept_start%Accept Invitation%accept_end%.{% endtrans %}
+    {{
+    'group.accept.invitation'|trans({
+        'accept': '<a href="' ~ url('accept_invite_to_group', {'groupId': group.id, 'memberId': receiver.id}) ~ '">' ~ 'group.email.accept'|trans ~ '</a>',
+    })|raw
+    }}
 </p>
 <p>
-    {% trans with {'%decline_start': decline_start, '%decline_end': decline_end} %}If you do not want to join the group, please click this link instead: %decline_start%Decline Invitation%decline_end%.{% endtrans %}
+    {{
+    'group.decline.invitation'|trans({
+        'decline': '<a href="' ~ url('decline_invite_to_group', {'groupId': group.id, 'memberId': receiver.id}) ~ '">' ~ 'group.email.decline'|trans ~ '</a>',
+    })|raw
+    }}
 </p>
-<p>{{ 'email.farewell' | trans }}</p>

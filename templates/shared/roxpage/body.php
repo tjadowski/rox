@@ -18,8 +18,11 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
         endforeach;
     endif; ?>
 
-<div class="container">
+<div class="container-lg">
     <?php $flashError = $this->getFlashError(true);
+    if (substr($flashError,0, 2) == 't.') {
+        $flashError = $this->words->getSilent($flashError);
+    }
     if (strlen($flashError) != 0): ?>
         <div class="row">
             <div class="col-12">
@@ -28,6 +31,9 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
         </div>
     <?php endif; ?>
     <?php $flashNotice = $this->getFlashNotice(true);
+    if (substr($flashNotice,0, 2) == 't.') {
+        $flashNotice = $this->words->getSilent($flashNotice);
+    }
     if (strlen($flashNotice) != 0): ?>
         <div class="row">
             <div class="col-12">
@@ -36,6 +42,9 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
         </div>
     <?php endif; ?>
     <?php $flashSuccess = $this->getFlashSuccess(true);
+    if (substr($flashSuccess,0, 2) == 't.') {
+        $flashSuccess = $this->words->getSilent($flashSuccess);
+    }
     if (strlen($flashSuccess) != 0): ?>
         <div class="row">
             <div class="col-12">
@@ -45,8 +54,8 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
     <?php endif; ?>
 </div>
 
-<div class="container">
-    <?
+<div class="container-lg">
+    <?php
         $side_column_names = $this->getColumnNames();
         $mid_column_name = array_pop($side_column_names);
 
@@ -54,7 +63,7 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
         <div class="row row-offcanvas row-offcanvas-right">
             <div class="col-12 col-md-9">
     <?php } else { ?>
-        <div class="row">
+        <div class="row mt-2">
             <div class="col-12">
     <?php } ?>
 
@@ -82,6 +91,4 @@ use Symfony\Component\Asset\VersionStrategy\JsonManifestVersionStrategy;
     </div> <!-- row -->
 </div>
 <div>
-    <?php $this->debugInfo() ?>
-    <?php $this->leftoverTranslationLinks() ?>
 </div>

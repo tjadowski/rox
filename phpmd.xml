@@ -19,7 +19,15 @@
           externalInfoUrl="http://phpmd.org/rules/cleancode.html#staticaccess">
         <priority>3</priority>
         <properties>
-            <property name="exceptions" value="\Locale,\Carbon\Carbon,\Illuminate\Database\Eloquent\Relations\HasMany,\Faker\Factory,\Symfony\Component\Debug\Debug" />
+            <property name="exceptions" value="
+                \DateTime,
+                \Faker\Factory,
+                \Carbon\Carbon,
+                \Symfony\Component\Debug\Debug,
+                Doctrine\Common\Collections\Criteria,
+                \AnthonyMartin\GeoLocation\GeoLocation,
+                \Symfony\Component\HttpFoundation\File\UploadedFile
+            " />
         </properties>
     </rule>
 
@@ -44,7 +52,7 @@
         <priority>3</priority>
         <properties>
             <property name="minimum" description="Minimum length for a variable, property or parameter name" value="3"/>
-            <property name="exceptions" value="a,b,id,i,e,q,qb,dt,em" />
+            <property name="exceptions" value="a,b,id,i,e,q,qb,dt,em,io" />
         </properties>
     </rule>
 
@@ -55,7 +63,7 @@
           externalInfoUrl="http://phpmd.org/rules/design.html#couplingbetweenobjects">
         <priority>2</priority>
         <properties>
-            <property name="minimum" value="20" description="Maximum number of acceptable dependencies." />
+            <property name="maximum" value="20" description="Maximum number of acceptable dependencies." />
         </properties>
     </rule>
 

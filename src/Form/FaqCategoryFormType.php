@@ -14,9 +14,6 @@ use Symfony\Component\Form\FormEvents;
 class FaqCategoryFormType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -25,9 +22,6 @@ class FaqCategoryFormType extends AbstractType
             ->add('wordCode', TextType::class, [
                 'label' => 'label.admin.faq.category.translation.id',
                 'help' => 'help.admin.faq.category.translation.id',
-                'attr' => [
-                    'readonly' => true,
-                ],
             ])
             ->add('description', TextType::class, [
                 'label' => 'label.admin.faq.category.description',
@@ -52,7 +46,7 @@ class FaqCategoryFormType extends AbstractType
                         throw new TransformationFailedException('error.admin.faq.transform.invalid');
                     }
 
-                    return 'faq_cat_'.$strippedWordCode;
+                    return 'faq_cat_' . $strippedWordCode;
                 }
             ));
         $formBuilder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {

@@ -2,7 +2,7 @@
 {% set member = app.user %}
 {% if member %}
     <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-primary navbar-shadow bordert-1 borderb-1">
-        <div class="container">
+        <div class="container-lg">
             <a class="navbar-brand d-none d-lg-inline" href="{{ url('homepage') }}"><img
                         src="{{ asset('images/logo_index_top.png') }}"
                         alt="BeWelcome"/></a>
@@ -18,9 +18,14 @@
             {# Navbar small screens #}
             <div class="collapse d-lg-none px-0 w-100" id="smallNavBar">
                 <ul class="navbar-nav mr-auto mt-2 pl-1">
-                    <li class="nav-item bordert-1">
-                        <a href="{{ url( 'search_members' ) }}" class="nav-link"><i
-                                    class="fa fa-globe-americas"></i>&nbsp;{{ 'findmembers' | trans }}</a>
+                    <li class="nav-item dropdown">
+                        <a href="#search_menu_small" class="nav-link dropdown-toggle px-1"
+                           data-target="search_menu_small" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ 'findmembers' | trans }}">
+                            &nbsp;{{ 'findmembers'|trans }}</span></a>
+                        <ul id="search_menu_small_menu" class="dropdown-menu" role="menu">
+                            <li><a href="{{ url( 'search_locations' ) }}" class="dropdown-item"><i class="fa fa-globe mr-1"></i>{{ 'search.locations' | trans }}</a></li>
+                            <li><a href="{{ path('search_members') }}" class="dropdown-item"><i class="fa fa-users mr-1"></i>{{ 'search.members' | trans }}</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a href="{{ url('community') }}" class="nav-link"><i
@@ -43,7 +48,7 @@
                                                     class="nav-link">{{ 'about_getactive' | trans }}</a></li>
                             <li class="nav-item"><a href="{{ url('donate') }}"
                                                     class="nav-link">{{ 'donatelink'  | trans }}</a></li>
-                            {% for team in teams if teams %}
+                            {% for team in teams %}
                                 {% if team.route starts with '/' %}
                                     <li class="nav-item">
                                         <a href="{{ team.route }}" class="nav-link">&nbsp;<i
@@ -71,8 +76,14 @@
             {# Navbar big screens #}
             <div class="collapse navbar-collapse d-none d-lg-block" id="mainNavBar">
                 <ul class="navbar-nav mr-auto">
-                    <li class="menuborder">
-                        <a href="{{ url( 'search_members' ) }}" class="nav-link">{{ 'findmembers' | trans }}</a>
+                    <li class="nav-item dropdown">
+                        <a href="#search_menu" class="nav-link dropdown-toggle px-1"
+                           data-target="search_menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ 'findmembers' | trans }}">
+                            &nbsp;{{ 'findmembers'|trans }}</span></a>
+                        <ul id="search_menu" class="dropdown-menu" role="menu">
+                            <li><a href="{{ url( 'search_locations' ) }}" class="dropdown-item"><i class="fa fa-globe mr-1"></i>{{ 'search.locations' | trans }}</a></li>
+                            <li><a href="{{ path('search_members') }}" class="dropdown-item"><i class="fa fa-users mr-1"></i>{{ 'search.members' | trans }}</a></li>
+                        </ul>
                     </li>
                     <li class="menuborder">
                         <a href="{{ url('community') }}" class="nav-link">{{ 'communitymenu' | trans }}</a>
@@ -84,16 +95,16 @@
                         <a href="{{ url('volunteer') }}" class="nav-link">{{ 'volunteer' | trans }}</a>
                     </li>
                     <li class="menuborder dropdown d-none d-md-flex">
-                        <a href="#subNavBar" class="nav-link btn-outline-secondary" id="subNavBarToggle"
+                        <a href="#subNavBar" class="nav-link btn-outline-secondary hamburgerbutton" id="subNavBarToggle"
                            data-target="subNavBar"
                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="navbar-toggler-icon"></span>&nbsp;<i class="fas fa-caret-down"></i>
+                            <span class="navbar-toggler-icon hamburger"></span>&nbsp;<i class="fas fa-caret-down menucaret"></i>
                         </a>
 
                         <div id="subNavBar" class="dropdown-menu subnav py-1 bordert-1 borderb-1"
                              aria-labelledby="subNavBarToggle">
 
-                            <div class="container">
+                            <div class="container-lg">
 
                                 <div class="d-flex flex-row justify-content-between">
                                     <div class="py-3 pr-3">
@@ -108,23 +119,27 @@
                                         <a href="{{ url('community') }}" class="h4">{{ 'communitymenu' | trans }}</a>
                                         <a href="{{ url('forums') }}"
                                            class="btn btn-block py-1 text-left mt-1">{{ 'communitydiscussions' | trans }}</a>
-                                        <a href="{{ url('groups_overview') }}"
+                                        <a href="{{ url('groups_redirect') }}"
                                            class="btn btn-block py-1 text-left">{{ 'groups' | trans }}</a>
                                         <a href="{{ url('activities') }}"
                                            class="btn btn-block py-1 text-left">{{ 'activities' | trans }}</a>
                                         <a href="{{ url('newsletters') }}"
                                            class="btn btn-block py-1 text-left">{{ 'newsletters' | trans }}</a>
+                                        <a href="{{ url('communitynews') }}"
+                                           class="btn btn-block py-1 text-left">{{ 'communitynews' | trans }}</a>
+                                        <a href="{{ url('polls') }}"
+                                           class="btn btn-block py-1 text-left">{{ 'polls' | trans }}</a>
                                     </div>
                                     <div class="py-3 pr-3">
                                         <a href="{{ url('about') }}" class="h4">{{ 'getanswers' | trans }}</a>
 
-                                        <a href="{{ url('faq') }}"
+                                        <a href="{{ url('about_faq') }}"
                                            class="btn btn-block py-1 text-left mt-1">{{ 'menu.faq' | trans }}</a>
                                         <a href="{{ url('feedback') }}"
                                            class="btn btn-block py-1 text-left">{{ 'contactus' | trans }}</a>
                                         <a href="{{ url('stats') }}"
                                            class="btn btn-block py-1 text-left">{{ 'statspage' | trans }}</a>
-                                        <a href="{{ url('terms_french') }}"
+                                        <a href="{{ url('terms_of_use', {'locale': locale }) }}"
                                            class="btn btn-block py-1 text-left">{{ 'termsofuse'  | trans }}</a>
                                     </div>
                                     <div class="py-3 pr-3 border-right border-white">
@@ -134,7 +149,7 @@
                                            class="btn btn-block py-1 text-left mt-1">{{ 'about_getactive' | trans }}</a>
                                         <a href="{{ url('donate') }}"
                                            class="btn btn-block py-1 text-left">{{ 'donatelink'  | trans }}</a>
-                                        {% for team in teams if teams %}
+                                        {% for team in teams %}
                                             {% if team.route starts with '/' %}
                                                 <a href="{{ team.route }}"
                                                    class="btn btn-block py-1 text-left">{{ team.trans | trans }}</a>
@@ -189,9 +204,8 @@
             </div>
             <ul class="nav mr-0">
                 <li class="nav-item dropdown">
-                    <a href="#member_menu" class="nav-link dropdown-toggle"
-                       style="padding-left: .25rem; padding-right: .25rem;"
-                       data-target="member_menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i
+                    <a href="#member_menu" class="nav-link dropdown-toggle px-1"
+                       data-target="member_menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ 'profile' | trans }}"><i
                                 class="fa fa-user"></i><span
                                 class="d-none d-sm-inline">&nbsp;{{ member.Username }}</span></a>
                     <ul id="member_menu" class="dropdown-menu" role="menu">
@@ -221,23 +235,22 @@
                     {% include 'widgets/requestscount.html.twig' %}
                 </li>
                 {# logout #}
-                <li class="nav-item"><a href="{{ url( 'security_logout' ) }}" class="nav-link"
-                                        style="padding-left: .25rem; padding-right: .25rem;"><i
+                <li class="nav-item"><a href="{{ url( 'security_logout' ) }}" class="nav-link px-1" aria-label="{{ 'logout' | trans }}"><i
                                 class="fa fa-lg fa-sign-out-alt"></i></a></li>
             </ul>
         </div>
     </nav>
     {% if is_granted('ROLE_ADMIN_CHECKER') or is_granted('ROLE_ADMIN_COMMENTS') or is_granted('ROLE_ADMIN_SAFETYTEAM')
         or is_granted('ROLE_ADMIN_GROUP')%}
-        <div class="container">
+        <div class="container-lg">
             <div class="row no-gutters justify-content-end">
                 <div class="py-2">
                     {% if not groupsInApprovalQueue is null %}<a class="btn btn-primary btn-sm"
-                                                              href="{{ path('admin_groups_approval') }}">{% transchoice groupsInApprovalQueue %}admin.groups.awaiting.approval{% endtranschoice %}</a>{% endif %}
+                                                              href="{{ path('admin_groups_approval') }}">{{ 'label.admin.groups.awaiting.approval' | trans({'groups':groupsInApprovalQueue}) }}</a>{% endif %}
                     {% if not reportedCommentsCount is null %}<a class="btn btn-primary btn-sm"
-                        href="{{ path('admin_comment_reported_overview') }}">{% transchoice reportedCommentsCount %}admin.comments.reported{% endtranschoice %}</a>{% endif %}
+                        href="{{ path('admin_comment_reported_overview') }}">{{ 'label.admin.comments.reported'|trans({'comments':reportedCommentsCount}) }}</a>{% endif %}
                     {% if not reportedMessagesCount is null %}<a class="btn btn-primary btn-sm"
-                        href="{{ path('admin_spam_overview') }}">{% transchoice reportedMessagesCount %}admin.spam.reported{% endtranschoice %}</a>{% endif %}
+                        href="{{ path('admin_spam_messages') }}">{{ 'label.admin.messages.reported'|trans({'messages': reportedMessagesCount}) }}</a>{% endif %}
                 </div>
             </div>
         </div>
@@ -245,7 +258,7 @@
 {% else %}
     {# navbar not logged in, showing main links #}
     <nav class="navbar navbar-sticky-top navbar-expand-lg navbar-dark bg-primary navbar-shadow bordert-1 borderb-1">
-        <div class="container">
+        <div class="container-lg">
             <a class="navbar-brand mr-3 pl-3 pl-md-0 float-left" href="{{ url('homepage') }}"><img
                         src="{{ asset('images/logo_index_top.png') }}" alt="BeWelcome"/></a>
 
@@ -261,37 +274,55 @@
                         <a href="{{ url('about') }}" class="nav-link px-3 menuborder">{{ 'menu.about' | trans }}</a>
                     </li>
                     <li class="menuborder">
-                        <a href="{{ url('safety') }}" class="nav-link px-3">{{ 'safety' | trans }}</a>
-                    </li>
-                    <li class="menuborder">
-                        <a href="{{ url('volunteer') }}"
-                           class="nav-link px-3 menuborder-r">{{ 'volunteer' | trans }}</a>
+                        <a href="{{ url('safety') }}" class="nav-link px-3 menuborder-r">{{ 'safety' | trans }}</a>
                     </li>
                 </ul>
+            </div>
+            <div>
+                <ul class="nav navbar-nav mr-auto ml-md-3">
+                    <li class="nav-item float-left d-none d-md-block">
+                        <form class="form-inline p-0" method="post" action="{{ url('security_check') }}">
+                            {{ macros.input('_username', 'Username') }}
+                            {{ macros.input('_password', 'Password', '', 'password') }}
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary border-white" id="loginDropdownButton">{{ 'indexpageloginsubmit' | trans }}</button>
+                                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split border-white" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="sr-only">Toggle Dropdown</span>
+                                </button>
+                                <div class="dropdown-menu white">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="login-r" value="1"
+                                               name="_remember_me"><label for="login-r" class="form-check-label">
+                                            &nbsp;{{ 'stayloggedin' | trans }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div><span class="mt-1 mx-2">{{ 'or' | trans }}</span><a
+                                href="/signup" class="btn btn-primary border-white">{{ 'navbar.button.signup'|trans }}</a>
+                            </div>
+                        </form>
 
-                <form id="main-login-form" role="form" class="form-inline" method="post"
-                      action="{{ path('security_check') }}">
-                    <label class="sr-only" for="login-u">{{ 'username' | trans }}</label>
-                    <input type="text" id="login-u" name="_username" autofocus required
-                           placeholder="{{ 'username' | trans }}" class="form-control mx-1">
-
-                    <label class="sr-only" for="login-p">{{ 'password' | trans }}</label>
-                    <input type="password" id="login-p" name="_password" placeholder="{{ 'password' | trans }}"
-                           class="form-control mx-1">
-
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-
-                    <div class="dropdown">
-                        <button type="submit" class="btn btn-primary" id="loginDropdownButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ 'indexpageloginsubmit' | trans }}</button>
-                        <div class="dropdown-menu" aria-labelledby="loginDropdownButton">
-                            <label for="login-r">
-                                <input type="checkbox" id="login-r" value="1"
-                                       name="_remember_me">&nbsp;{{ 'stayloggedin' | trans }}
-                            </label>
-                        </div>
-                    </div>
-                </form>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 {% endif %}
+<noscript><div class="container-lg"><div class="alert alert-danger"><p class="h5">You need to activate Javascript for bewelcome.org</p><small>Without it some function won't work.</small></div></div></noscript>
+{% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+<div class="container-lg">{% for message in loginmessages %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ message.text|raw }}
+            <button data-alert="{{ message.id }}" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    {% endfor %}
+</div>
+    <script type="text/javascript">
+
+    </script>
+{% endif %}
+

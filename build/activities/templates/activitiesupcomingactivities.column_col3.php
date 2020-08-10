@@ -1,6 +1,7 @@
 <div class="row">
     <div class="col-12">
 <?php
+$showOnlyOnlineActivities = true;
 if (count($this->activities) == 0) {
 ?>
 <p><?php 
@@ -9,11 +10,13 @@ if ($this->publicOnly) {
 } else {
     echo $words->get('ActivitiesNoUpcoming');
 }
-?></p>
 
-<?php 
+?></p>
+    <?php
 } else {
-    require_once('activitieslist.php');
+?>
+<?php
+        require_once('activitieslist.php');
 }
 ?>
     </div>

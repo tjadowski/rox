@@ -44,13 +44,13 @@ if ($galleryId) $postURL = 'gallery/show/sets/'.$galleryId;
                     <div class="upload max5 alert alert-warning">You can only upload 5 images at a time</div>
                                 <input type="hidden" name="galleryId" value="<?=$galleryId;?>">
                 <?php echo $callbacktag; ?>
-                <input type="submit" class="btn btn-sm btn-primary my-2 px-5" value="<?=$words->getSilent('Gallery_UploadSubmit')?>"/>
+                <input type="submit" class="btn btn-sm btn-primary my-2" value="<?=$words->getSilent('Gallery_UploadSubmit')?>"/>
             </div>
         </div>
         <div class="col-12 col-md-6">
 
             <div class="alert alert-warning">
-                <?=$words->getFormatted('Gallery_UploadWarning')?><? printf("%.1f MB", PFunctions::returnBytes(ini_get('upload_max_filesize')) / 1048576); ?>
+                <?=$words->getFormatted('Gallery_UploadWarning')?><?php printf("%.1f MB", PFunctions::returnBytes(ini_get('upload_max_filesize')) / 1048576); ?>
             </div>
         </div>
         <?=$words->flushBuffer()?>
@@ -58,7 +58,7 @@ if ($galleryId) $postURL = 'gallery/show/sets/'.$galleryId;
     </form>
     <iframe id="gallery-img-upload-getter" name="gallery-img-upload-getter" class="d-none"></iframe>
     <script type="text/javascript">//<!--
-    <? if (isset($uploaderUrl)) { ?>
+    <?php if (isset($uploaderUrl)) { ?>
     var Gallery = {
     	imageUploaded: function() {
     		if($('gallery-upload-content')) {
@@ -67,7 +67,7 @@ if ($galleryId) $postURL = 'gallery/show/sets/'.$galleryId;
     		}
     	}
     }
-    <? } ?>
+    <?php } ?>
 var GalleryImg = new Uploader('gallery-img-upload', {
     iframeAfter:'gallery-upload-content',
     oncomplete:Gallery.imageUploaded,

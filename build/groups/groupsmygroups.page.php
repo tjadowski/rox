@@ -15,8 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, see <http://www.gnu.org/licenses/> or 
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+along with this program; if not, see <http://www.gnu.org/licenses/> or
+write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 */
     /**
@@ -38,7 +38,7 @@ class GroupsMyGroupsPage extends GroupsBasePage
         $words = $this->getWords();
         ?>
         <div>
-            <h1><a href="groups/mygroups"><?= $words->get('GroupsMyGroups');?></a></h1>
+            <h2><a href="groups/search"><?= $words->get('Groups');?></a> &raquo; <?= $words->get('GroupsMyGroups');?></h2>
         </div>
         <?php
     }
@@ -50,9 +50,44 @@ class GroupsMyGroupsPage extends GroupsBasePage
         $items[] = array('mygroups', 'groups/mygroups', $words->getSilent('GroupsMyGroups'));
         $items[] = array('search', 'groups/search', $words->getSilent('GroupsFindGroups'));
 
+        $isForumModerator = $this->member->hasOldRight(['ForumModerator' => 10]);
+
+        if ($isForumModerator)
+        {
+            $forumsModel = new Forums();
+            $items[] = ['separator'];
+            $items[] = ['allmyreports', 'forums/reporttomod/AllMyReport', 'All reports for me'];
+            $items[] = [
+                'myactivereports',
+                'forums/reporttomod/MyReportActive',
+                'Pending reports for me <span class="badge badge-default">'
+                . $forumsModel->countReportList($this->session->get("IdMember"),
+                    "('Open','OnDiscussion')"
+                )
+                . '</span>'
+            ];
+            $items[] = [
+                'allactivereports',
+                'forums/reporttomod/AllActiveReports',
+                'All pending reports <span class="badge badge-default">'
+                . $forumsModel->countReportList(0,"('Open','OnDiscussion')")
+                . '</span>'
+            ];
+            $items[] = ['separator'];
+            $items[] = [
+                'groupadmin',
+                '/admin/groups/approval',
+                'Group Administration'
+            ];
+            $items[] = [
+                'grouplogs',
+                'admin/logs/groups',
+                'Group Logs'
+            ];
+        }
+
         return $items;
     }
-
 
     protected function getSubmenuActiveItem()
     {

@@ -10,10 +10,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class UserChecker implements UserCheckerInterface
 {
     /**
-     * @param UserInterface $user
-     *
      * @throws AccountBannedException
-     * @throws AccountMailNotConfirmedException
+     * @throws AccountDeniedLoginException
      */
     public function checkPreAuth(UserInterface $user)
     {
@@ -21,21 +19,18 @@ class UserChecker implements UserCheckerInterface
             return;
         }
 
-        // user is deleted, show a generic Account Not Found message.
         if ($user->isBanned()) {
             throw new AccountBannedException();
         }
-        // user is deleted, show a generic Account Not Found message.
-        if ($user->isNotConfirmedYet()) {
-            throw new AccountMailNotConfirmedException();
+
+        if ($user->isDeniedAccess()) {
+            throw new AccountDeniedLoginException();
         }
     }
 
     /**
-     * @param UserInterface $user
-     *
      * @throws AccountExpiredException
-     * @throws AccountDeniedLoginException
+     * @throws AccountMailNotConfirmedException
      */
     public function checkPostAuth(UserInterface $user)
     {
@@ -43,13 +38,12 @@ class UserChecker implements UserCheckerInterface
             return;
         }
 
-        // user account is expired, the user may be notified
         if ($user->isExpired()) {
             throw new AccountExpiredException();
         }
 
-        if ($user->isDeniedAccess()) {
-            throw new AccountDeniedLoginException();
+        if ($user->isNotConfirmedYet()) {
+            throw new AccountMailNotConfirmedException();
         }
     }
 }

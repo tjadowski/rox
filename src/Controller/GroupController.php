@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Doctrine\GroupMembershipStatusType;
-use App\Doctrine\GroupTypeType;
+use App\Doctrine\GroupType as DoctrineGroupType;
 use App\Entity\Group;
 use App\Entity\GroupMembership;
 use App\Entity\Member;
@@ -11,16 +11,18 @@ use App\Entity\Wiki;
 use App\Form\CustomDataClass\GroupRequest;
 use App\Form\GroupType;
 use App\Form\JoinGroupType;
+use App\Form\WikiCreateForm;
 use App\Logger\Logger;
 use App\Model\GroupModel;
 use App\Model\WikiModel;
 use App\Repository\GroupRepository;
 use App\Repository\WikiRepository;
-use App\Utilities\MailerTrait;
+use App\Utilities\ManagerTrait;
 use App\Utilities\TranslatedFlashTrait;
 use App\Utilities\TranslatorTrait;
+use App\Utilities\UniqueFilenameTrait;
 use Exception;
-use Intervention\Image\ImageManagerStatic as Image;
+use Intervention\Image\ImageManager;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -39,9 +41,10 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 class GroupController extends AbstractController
 {
-    use MailerTrait;
+    use ManagerTrait;
     use TranslatorTrait;
     use TranslatedFlashTrait;
+    use UniqueFilenameTrait;
 
     /**
      * @var GroupModel
@@ -54,12 +57,50 @@ class GroupController extends AbstractController
     }
 
     /**
+     * @Route("/groups/", name="groups_redirect", priority="10")
+     *
+     * @return RedirectResponse
+     */
+    public function redirectToOverviewPage()
+    {
+        /** @var Member $member */
+        $member = $this->getUser();
+        if ($member->getGroups()) {
+            return $this->redirectToRoute('groups_mygroups');
+        }
+
+        return $this->redirectToRoute('groups_search');
+    }
+
+    /**
+     * @Route("/groups/{groupId}/{path}", name="groups_redirect_path",
+     *     requirements = {"groupId": "\d+", "path":".+"})
+     * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
+     *
+     * @return RedirectResponse
+     */
+    public function groupsRedirectPath(Request $request)
+    {
+        // We only need the request
+        return $this->redirectGroup($request);
+    }
+
+    /**
+     * @Route("/groups/{groupId}", name="groups_redirect_group",
+     *     requirements = {"groupId": "\d+"})
+     * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
+     *
+     * @return RedirectResponse
+     */
+    public function groupsRedirect(Request $request)
+    {
+        return $this->redirectGroup($request);
+    }
+
+    /**
      * @Route("/group/{groupId}/join", name="join_group")
      *
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
-     *
-     * @param Request $request
-     * @param Group   $group
      *
      * @return Response
      *
@@ -68,6 +109,7 @@ class GroupController extends AbstractController
      */
     public function join(Request $request, Group $group)
     {
+        /** @var Member $member */
         $member = $this->getUser();
         if ($group->isMember($member)) {
             return $this->redirectToRoute('group_membersettings', [
@@ -75,7 +117,7 @@ class GroupController extends AbstractController
             ]);
         }
 
-        if (GroupTypeType::INVITE_ONLY === $group->getType()) {
+        if (DoctrineGroupType::INVITE_ONLY === $group->getType()) {
             $this->addTranslatedFlash('notice', 'flash.group.need.invite');
 
             return $this->redirectToRoute('groups');
@@ -83,7 +125,7 @@ class GroupController extends AbstractController
 
         /** @var GroupMembership $membership */
         $membership = $group->getGroupMembership($member);
-        if (GroupTypeType::NEED_ACCEPTANCE === $group->getType()) {
+        if (DoctrineGroupType::NEED_ACCEPTANCE === $group->getType()) {
             // Check if a join request is currently open
 
             if (false !== $membership) {
@@ -93,7 +135,7 @@ class GroupController extends AbstractController
             }
         }
 
-        if (GroupTypeType::PUBLIC === $group->getType()) {
+        if (DoctrineGroupType::PUBLIC === $group->getType()) {
             if (false !== $membership && GroupMembershipStatusType::INVITED_INTO_GROUP === $membership->getStatus()) {
                 // Accept the invitation
                 return $this->acceptInviteToGroup($group, $member);
@@ -109,7 +151,6 @@ class GroupController extends AbstractController
             if ($success) {
                 if (!$group->isPublic()) {
                     $this->addTranslatedFlash('notice', 'flash.group.join.await.acceptance');
-                    $this->informGroupAdmins($group, $member);
                 } else {
                     $this->addTranslatedFlash('notice', 'flash.group.join.success');
                 }
@@ -136,14 +177,13 @@ class GroupController extends AbstractController
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
      *
-     * @param Group  $group
-     * @param Member $member
+     * @throws AccessDeniedException
      *
      * @return RedirectResponse
-     * @throws AccessDeniedException
      */
     public function approveJoin(Group $group, Member $member)
     {
+        /** @var Member $admin */
         $admin = $this->getUser();
         if (!$group->isAdmin($admin)) {
             throw $this->createAccessDeniedException('No group admin');
@@ -170,14 +210,13 @@ class GroupController extends AbstractController
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
      *
-     * @param Group  $group
-     * @param Member $member
+     * @throws AccessDeniedException
      *
      * @return RedirectResponse
-     * @throws AccessDeniedException
      */
     public function declineJoin(Group $group, Member $member)
     {
+        /** @var Member $admin */
         $admin = $this->getUser();
         if (!$group->isAdmin($admin)) {
             throw $this->createAccessDeniedException('No group admin');
@@ -204,16 +243,13 @@ class GroupController extends AbstractController
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
      *
-     * @param Group  $group
-     * @param Member $member
-     *
      * @throws AccessDeniedException
      *
      * @return JsonResponse
      */
     public function inviteMemberToGroup(Group $group, Member $member)
     {
-        // Check if current user is admin of given group
+        /** @var Member $admin */
         $admin = $this->getUser();
         if (!$group->isAdmin($admin)) {
             throw $this->createAccessDeniedException();
@@ -232,9 +268,6 @@ class GroupController extends AbstractController
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
      *
-     * @param Group  $group
-     * @param Member $member
-     *
      * @return RedirectResponse
      */
     public function acceptInviteToGroup(Group $group, Member $member)
@@ -243,7 +276,7 @@ class GroupController extends AbstractController
 
         if ($success) {
             $admins = $group->getAdmins();
-            $this->sendAdminNotification($group, $member, $admins);
+            $this->groupModel->sendAdminNotification($group, $member, $admins);
             $this->addTranslatedFlash('notice', 'flash.invite.accepted');
         } else {
             $this->addTranslatedFlash('error', 'flash.invite.accepted.error');
@@ -258,9 +291,6 @@ class GroupController extends AbstractController
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
      *
-     * @param Group  $group
-     * @param Member $member
-     *
      * @return RedirectResponse
      */
     public function declineInviteToGroup(Group $group, Member $member)
@@ -269,7 +299,7 @@ class GroupController extends AbstractController
 
         if ($success) {
             $admins = $group->getAdmins();
-            $this->sendAdminNotification($group, $member, $admins);
+            $this->groupModel->sendAdminNotification($group, $member, $admins);
             $this->addTranslatedFlash('notice', 'flash.invite.declined');
         } else {
             $this->addTranslatedFlash('error', 'flash.invite.declined.error');
@@ -283,10 +313,6 @@ class GroupController extends AbstractController
      *
      * @ParamConverter("group", class="App\Entity\Group", options={"id" = "groupId"})
      * @ParamConverter("member", class="App\Entity\Member", options={"id" = "memberId"})
-     *
-     * @param Request $request
-     * @param Group   $group
-     * @param Member  $member
      *
      * @return RedirectResponse
      */
@@ -307,24 +333,23 @@ class GroupController extends AbstractController
     /**
      * @Route("/new/group", name="new_group")
      *
-     * @param Request $request
-     * @param Logger  $logger
-     *
      * @throws Exception
      *
      * @return Response
-     *
-     * @SuppressWarnings(PHPMD.ExcessiveMethodLength)
-     * Because of the mix between old code and new code this method is way too long.
      */
-    public function createNewGroup(Request $request, Logger $logger)
+    public function createGroup(Request $request, Logger $logger)
     {
+        /** @var Member $member */
+        $member = $this->getUser();
         $groupRequest = new GroupRequest();
-        $form = $this->createForm(GroupType::class, $groupRequest);
+        $form = $this->createForm(GroupType::class, $groupRequest, [
+            'allowInvitationOnly' => $member->getLevelForRight(Member::ROLE_ADMIN_GROUP),
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
+            /** @var Member $member */
             $member = $this->getUser();
 
             $groupPicture = $this->handleGroupPicture($data->picture);
@@ -335,9 +360,9 @@ class GroupController extends AbstractController
                 '%name%' => $group->getName(),
             ]);
 
-            $logger->write('Group '.$group->getName().' created by '.$member->getUsername().'.', 'Group');
+            $logger->write('Group ' . $group->getName() . ' created by ' . $member->getUsername() . '.', 'Group');
 
-            return $this->redirectToRoute('groups_overview');
+            return $this->redirectToRoute('groups_redirect');
         }
 
         return $this->render('group/create.html.twig', [
@@ -347,8 +372,6 @@ class GroupController extends AbstractController
 
     /**
      * @Route("/new/group/check", name="new_group_check")
-     *
-     * @param Request $request
      *
      * @return JsonResponse
      */
@@ -379,16 +402,13 @@ class GroupController extends AbstractController
     /**
      * @Route("/group/{id}/wiki", name="group_wiki_page")
      *
-     * @param Group     $group
-     * @param WikiModel $wikiModel
-     *
      * @return Response
      */
     public function showGroupWikiPage(Group $group, WikiModel $wikiModel)
     {
         $member = $this->getUser();
 
-        $pageName = $wikiModel->getPageName('Group_'.$group->getName());
+        $pageName = $wikiModel->getPageName('Group_' . $group->getName());
 
         $em = $this->getDoctrine();
         /** @var WikiRepository $wikiRepository */
@@ -397,42 +417,89 @@ class GroupController extends AbstractController
         $wikiPage = $wikiRepository->getPageByName($pageName);
 
         if (null === $wikiPage) {
-            $output = 'No wiki found for this group.';
+            $output = null;
         } else {
             $output = $wikiModel->parseWikiMarkup($wikiPage->getContent());
         }
 
         return $this->render('group/wiki.html.twig', [
-            'title' => 'Group '.$group->getName(),
+            'title' => 'Group ' . $group->getName(),
             'submenu' => [
                 'active' => 'wiki',
                 'items' => $this->getSubmenuItems($member, $group),
             ],
+            'group' => $group,
             'wikipage' => $output,
         ]);
     }
 
     /**
-     * @param Group    $group
-     * @param Member   $member
-     * @param Member[] $admins
+     * @Route("/group/{id}/wiki/create", name="group_wiki_page_create")
+     *
+     * @return RedirectResponse
      */
-    private function sendAdminNotification(Group $group, Member $member, $admins)
+    public function createGroupWikiPage(Group $group, WikiModel $wikiModel)
     {
-        foreach ($admins as $admin) {
-            $this->sendTemplateEmail('group@bewelcome.org', $admin, 'group/accept.invite', [
-                'subject' => 'group.invitation.accepted',
-                'group' => $group,
-                'invitee' => $member,
-                'admin' => $admin,
-            ]);
+        $pageName = $wikiModel->getPageName('Group_' . $group->getName());
+
+        /** @var Wiki $wikiPage */
+        $wikiPage = $wikiModel->getPage($pageName);
+
+        if (null === $wikiPage) {
+            $wikiModel->createWikiPage($pageName, '');
         }
+
+        return $this->redirectToRoute('group_wiki_page_edit', ['id' => $group->getId()]);
     }
 
     /**
-     * @param Member $member
-     * @param Group  $group
+     * @Route("/group/{id}/wiki/edit", name="group_wiki_page_edit")
      *
+     * @return Response
+     */
+    public function editGroupWikiPage(Request $request, Group $group, WikiModel $wikiModel)
+    {
+        /** @var Member $member */
+        $member = $this->getUser();
+
+        $pageName = $wikiModel->getPageName('Group_' . $group->getName());
+
+        /** @var Wiki $wikiPage */
+        $wikiPage = $wikiModel->getPage($pageName);
+
+        if (null === $wikiPage) {
+            return $this->redirectToRoute('group_wiki_page_create');
+        }
+
+        $form = $this->createForm(WikiCreateForm::class, ['wiki_markup' => $wikiPage->getContent()]);
+
+        $form->handleRequest($request);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $wikiModel->addNewVersion($wikiPage, $data['wiki_markup']);
+            $this->addTranslatedFlash('notice', 'flash.wiki.updated');
+
+            return $this->redirectToRoute('group_wiki_page', ['id' => $group->getId()]);
+        }
+
+        return $this->render('group/wiki.edit.html.twig', [
+            'title' => $group->getName(),
+            'submenu' => [
+                'active' => 'wiki',
+                'items' => $this->getSubmenuItems($member, $group),
+            ],
+            'form' => $form->createView(),
+        ]);
+    }
+
+    private function redirectGroup(Request $request)
+    {
+        $pathInfo = str_replace('/groups/', '/group/', $request->getPathInfo());
+
+        return new RedirectResponse($pathInfo);
+    }
+
+    /**
      * @return array
      */
     private function getSubmenuItems(Member $member, Group $group)
@@ -488,46 +555,23 @@ class GroupController extends AbstractController
         // if a file was uploaded move it into the image storage
         $groupImageDir = $this->getParameter('group_directory');
         if (null !== $picture) {
-            $fileName = $this->generateUniqueFileName().'.'.$picture->guessExtension();
+            $fileName = $this->generateUniqueFileName() . '.' . $picture->guessExtension();
 
             // moves the file to the directory where group images are stored
             $picture->move(
                 $groupImageDir,
                 $fileName
             );
-            $img = Image::make($groupImageDir.'/'.$fileName);
-            $img->resize(80, 80, function ($constraint) {
+            $imageManager = new ImageManager();
+            $img = $imageManager->make($groupImageDir . '/' . $fileName);
+            $img->resize(80, null, function ($constraint) {
                 $constraint->aspectRatio();
             });
-            $img->save($groupImageDir.'/thumb'.$fileName);
+            $img->save($groupImageDir . '/thumb' . $fileName);
 
             return $fileName;
         }
 
         return null;
-    }
-
-    /**
-     * @return string
-     */
-    private function generateUniqueFileName()
-    {
-        // md5() reduces the similarity of the file names generated by
-        // uniqid(), which is based on timestamps
-        return md5(uniqid());
-    }
-
-    private function informGroupAdmins(Group $group, $member)
-    {
-        $admins = $group->getAdmins();
-
-        if (!empty($admins)) {
-            foreach ($admins as $admin) {
-                $this->sendTemplateEmail('group@bewelcome.org', $admin, 'group.approve.join', [
-                    'subject' => 'group.join.approved',
-                    'member' => $member,
-                ]);
-            }
-        }
     }
 }

@@ -2,7 +2,7 @@
 
 
 class AddRelationPage extends RelationsPage
-{    
+{
     protected function getSubmenuActiveItem()
     {
         return 'relationsadd';
@@ -15,7 +15,7 @@ class AddRelationPage extends RelationsPage
         $layoutkit = $this->layoutkit;
         $formkit = $layoutkit->formkit;
         $callback_tag = $formkit->setPostCallback('MembersController', 'RelationCallback');
-        $page_url = PVars::getObj('env')->baseuri . implode('/', PRequest::get()->request); 
+        $page_url = PVars::getObj('env')->baseuri . implode('/', PRequest::get()->request);
         $TabRelationsType = $member->get_TabRelationsType();
         $relation = $this->model->get_relation_between_members($member->id);
             if (isset($relation['member']->Confirmed) && $relation['member']->Confirmed == 'No') {
@@ -28,19 +28,19 @@ class AddRelationPage extends RelationsPage
 
 <div class="row">
             <div class="col-12">
-         <? if ($action == 'update' && isset($relation['member']->Confirmed)) : ?>
+         <?php if ($action == 'update' && isset($relation['member']->Confirmed)) : ?>
             <div class="alert alert-success"><?=$words->get('RelationIsConfirmed',$member->Username)?></div>
-         <? elseif ($action == 'update') : ?>
+         <?php elseif ($action == 'update') : ?>
             <div class="alert alert-info"><?=$words->get('RelationWaitConfirmed',$member->Username)?></div>
-         <? endif ?>
+         <?php endif ?>
         <form method="post" action="<?=$page_url?>" name="relation" id="relation" enctype="multipart/form-data">
         <fieldset>
             <input type="hidden"  name="IdRelation"  value="<?=$member->id?>" />
-            <input type="hidden"  name="IdOwner"  value="<?=$this->_session->get('IdMember')?>" />
+            <input type="hidden"  name="IdOwner"  value="<?=$this->session->get('IdMember')?>" />
             <?=$callback_tag?>
             <legend><?=$words->get($action.'Relation')?></legend>
             <p class="small"><?=$words->get('MyRelationListExplanation',$member->Username,$member->Username)?></p>
-            <? if (count($relation['member']) <= 0) : ?>
+            <?php if (isset($relation['member'])) : ?>
             <div>
             <label class="grey"><?=$words->get('RelationListCategory')?></label><br />
             <?php
@@ -48,18 +48,18 @@ class AddRelationPage extends RelationsPage
                 $max=count($tt);
                 for ($ii = 0; $ii < $max; $ii++) {
                     echo "<input type=checkbox name=\"Type_" . $tt[$ii] . "\"";
-                    if (count($relation['myself']) > 0 && strpos(" ".$relation['myself']->Type,$tt[$ii] )!=0)
+                    if (isset($relation['myself']) && is_object($relation['myself']) > 0 && strpos(" ".$relation['myself']->Type,$tt[$ii] )!=0)
                     echo " checked ";
                     echo "> ".$words->get("Relation_Type_" . $tt[$ii])."<br />";
                 }
             ?>
             <p class="mt-3"><?=$words->get('RelationListExplanation')?></p>
             </div>
-            <? else : ?>
+            <?php else : ?>
             <div>
             <?=$words->get('RelationType')?>: <strong><?=$words->get("Relation_Type_" . $relation['member']->Type)?></strong>
             </div>
-            <? endif ?>
+            <?php endif ?>
             <div>
                 <label class="grey"><?=$words->get("RelationText",$member->Username)?>:</label><br />
                 <textarea rows="4" class="w-100" name="Comment"><?php

@@ -15,7 +15,9 @@
                 <div class="col-12 pull-right">{{ pagerfanta( comments, 'rox_default') }}</div>
             </div>
         {% endif %}
-        <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="table-responsive">
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
@@ -31,12 +33,12 @@
                         <td>{{ macros.avatarstack(comment.fromMember.Username, 50) }}</td>
                         <td class="w-100">
                             <small class="text-muted">{{ 'comment.quality' | trans }}</small><br>
-                            {{ comment.Quality | trans }} ({{ 'written' | trans | capitalize }} {{ comment.created.diffForHumans }})<hr style="margin-top:0; margin-bottom:.25rem;">
-                            <small class="text-muted">{{ 'Comment text' | trans }}</small><br>
+                            {{ ('CommentQuality_' ~ comment.Quality) | lower | trans }} ({{ 'written' | trans }} {{ comment.created }}{% if comment.created != comment.updated %} &mdash; {{ 'updated' | trans }} {{ comment.updated }}{% endif %})<hr style="margin-top:0; margin-bottom:.25rem;">
+                            <small class="text-muted">{{ 'comment.text' | trans }}</small><br>
                             {{ comment.TextFree | nl2br }}<hr style="margin-top:0; margin-bottom:.25rem;">
-                            <small class="text-muted">{{ 'How we know each other' | trans }}</small><br>
+                            <small class="text-muted">{{ 'comment.know' | trans }}</small><br>
                             {% set relations = comment.relations | split(',') %}
-                            {% for relation in relations %}{{ ('Comment_' ~ relation) | trans }} {% endfor %}
+                            {% for relation in relations %}{{ ('Comment_' ~ relation) | lower | trans }} {% endfor %}
 
                         </td>
                         <td>{{ macros.avatarstack(comment.toMember.Username, 50) }}</td>
@@ -58,6 +60,8 @@
                 {% endfor %}
                 </tbody>
             </table>
+                </div>
+            </div>
         </div>
         {% if comments.haveToPaginate %}
             <div class="row">

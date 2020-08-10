@@ -3,6 +3,7 @@
 namespace App\Form;
 
 use App\Form\CustomDataClass\SearchFormRequest;
+use SearchModel;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Exception\AlreadySubmittedException;
 use Symfony\Component\Form\Exception\LogicException;
@@ -20,21 +21,17 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class SearchFormType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
     {
         $formBuilder
             ->add('location', TextType::class, [
+                'label' => 'landing.whereyougo',
                 'attr' => [
                     'placeholder' => 'landing.whereyougo',
                 ],
-                'label' => false,
                 'error_bubbling' => true,
-                'translation_domain' => 'messages',
             ])
             ->setMethod('GET')
             ->add('keywords', TextType::class, [
@@ -84,8 +81,6 @@ class SearchFormType extends AbstractType
      * Add 'see map' option in case the map shows result from a zoom/pan operation or
      * an empty search location (\todo).
      *
-     * @param FormEvent $event
-     *
      * @throws AlreadySubmittedException
      * @throws LogicException
      * @throws UnexpectedTypeException
@@ -94,14 +89,14 @@ class SearchFormType extends AbstractType
     {
         $data = $event->getData();
         $choices = [
-            'exact' => 0,
-            '5km (~3mi)' => 5,
-            '10km (~6mi)' => 10,
-            '15km (~10mi)' => 15,
-            '20km (~15mi)' => 20,
-            '50km (~31mi)' => 50,
-            '100km (~63mi)' => 100,
-            '200km (~128mi)' => 200,
+            'search.radius.exact' => 0,
+            'search.radius.5km' => 5,
+            'search.radius.10km' => 10,
+            'search.radius.15km' => 15,
+            'search.radius.20km' => 20,
+            'search.radius.50km' => 50,
+            'search.radius.100km' => 100,
+            'search.radius.200km' => 200,
         ];
         $showOnMap = (bool) ($data->showOnMap);
         if (true === $showOnMap) {
@@ -110,15 +105,7 @@ class SearchFormType extends AbstractType
         $form = $event->getForm();
         $form->add('distance', ChoiceType::class, [
             'choices' => $choices,
-            'attr' => [
-                'class' => 'select2-inline',
-                'data-minimum-results-for-search' => '-1',
-            ],
             'label' => 'label.radius',
-            'label_attr' => [
-                'class' => 'mr-1 sr-only',
-            ],
-            'translation_domain' => false,
         ]);
     }
 
@@ -135,7 +122,7 @@ class SearchFormType extends AbstractType
         $languages = [];
         if (null !== $options['languages']) {
             foreach ($options['languages'] as $language) {
-                $languages['lang_'.$language->getShortCode()] = $language->getId();
+                $languages['lang_' . $language->getShortCode()] = $language->getId();
             }
         }
         $formBuilder
@@ -220,37 +207,47 @@ class SearchFormType extends AbstractType
                     20 => '20',
                 ],
                 'choice_translation_domain' => false,
-                'attr' => [
-                    'class' => 'select2-inline',
-                    'data-minimum-results-for-search' => '-1',
-                ],
                 'label' => 'searchcanhostatleast',
-                'label_attr' => [
-                    'class' => 'mx-1 sr-only',
-                ],
                 'translation_domain' => 'messages',
             ])
-            ->add('order', ChoiceType::class, [
-                'label' => 'label.order',
+            ->add('last_login', ChoiceType::class, [
+                'label' => 'search.filter.last.login',
                 'choices' => [
-                    'searchorderusernameasc' => 2,
-                    'searchorderusernamedesc' => 3,
-                    'searchorderaccommodationasc' => 6,
-                    'searchorderaccommodationdesc' => 7,
-                    'searchorderdistanceasc' => 14,
-                    'searchorderdistancedesc' => 15,
-                    'searchorderloginasc' => 8,
-                    'searchorderlogindesc' => 9,
-                    'searchordermembershipasc' => 10,
-                    'searchordermembershipdesc' => 11,
-                    'searchordercommentsasc' => 12,
-                    'searchordercommentsdesc' => 13,
+                    "search.filter.last.login.1month" => 1,
+                    "search.filter.last.login.2months" => 2,
+                    "search.filter.last.login.3months" => 3,
+                    "search.filter.last.login.6months" => 6,
+                    "search.filter.last.login.year" => 12,
+                    "search.filter.last.login.all" => 2400,
                 ],
                 'attr' => [
                     'class' => 'select2',
                     'data-minimum-results-for-search' => '-1',
                 ],
                 'translation_domain' => 'messages',
+            ])
+            ->add('order', ChoiceType::class, [
+                'label' => 'label.order',
+                'choices' => [
+                    'search.order.accommodation' => 6,
+                    'search.order.distance' => 14,
+                    'search.order.login' => 8,
+                    'search.order.comments' => 12,
+                    'search.order.membership' => 10,
+                    'search.order.username' => 2,
+                ],
+                'attr' => [
+                    'class' => 'select2',
+                    'data-minimum-results-for-search' => '-1',
+                ],
+                'translation_domain' => 'messages',
+            ])
+            ->add('direction', ChoiceType::class, [
+                'label' => 'label.direction',
+                'choices' => [
+                    'search.direction.ascending' => SearchModel::DIRECTION_ASCENDING,
+                    'search.direction.descending' => SearchModel::DIRECTION_DESCENDING,
+                ],
             ])
             ->add('items', ChoiceType::class, [
                 'label' => 'label.items',
@@ -299,43 +296,56 @@ class SearchFormType extends AbstractType
     {
         $formBuilder
             ->add('accommodation_anytime', CheckboxType::class, [
-                'label' => false,
-                'required' => false,
-            ])
-            ->add('accommodation_dependonrequest', CheckboxType::class, [
-                'label' => false,
+                'label' => 'search.accommodation.yes',
                 'required' => false,
             ])
             ->add('accommodation_neverask', CheckboxType::class, [
-                'label' => false,
+                'label' => 'search.accommodation.no',
                 'required' => false,
             ])
             ->add('offerdinner', CheckboxType::class, [
-                'label' => 'typicoffer_dinner',
+                'label' => 'search.offer.dinner',
                 'required' => false,
             ])
             ->add('offertour', CheckboxType::class, [
-                'label' => 'typicoffer_guidedtour',
+                'label' => 'search.offer.guided.tour',
                 'required' => false,
             ])
             ->add('accessible', CheckboxType::class, [
-                'label' => 'typicoffer_canhostwheelchair',
+                'label' => 'search.offer.accessible',
                 'required' => false,
             ])
-            ->add('inactive', CheckboxType::class, [
-                'label' => 'searchincludeinactive',
+            ->add('profile_picture', CheckboxType::class, [
+                'label' => 'search.has.profile.picture',
                 'required' => false,
             ])
-            ->add('showmap', CheckboxType::class, [
+            ->add('about_me', CheckboxType::class, [
+                'label' => 'search.has.about.me',
+                'required' => false,
+            ])
+            ->add('no_smoking', CheckboxType::class, [
+                'label' => 'search.restriction.no.smoking',
+                'required' => false,
+            ])
+            ->add('no_alcohol', CheckboxType::class, [
+                'label' => 'search.restriction.no.alcohol',
+                'required' => false,
+            ])
+            ->add('no_drugs', CheckboxType::class, [
+                'label' => 'search.restriction.no.drugs',
+                'required' => false,
+            ])
+            ->add('has_comments', CheckboxType::class, [
+                'label' => 'search.filter.has.comments',
+                'required' => false,
+            ])
+            ->add('show_map', CheckboxType::class, [
                 'label' => 'search.show.map',
                 'required' => false,
             ])
-            ->add('showadvanced', CheckboxType::class, [
-                'label' => false,
+            ->add('show_options', CheckboxType::class, [
+                'label' => 'search.show.options',
                 'required' => false,
-                'attr' => [
-                    'class' => 'd-none',
-                ],
             ])
         ;
     }

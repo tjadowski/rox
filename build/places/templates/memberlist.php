@@ -1,6 +1,6 @@
 <?php
 echo '<div class="row mt-3"><div class="col-12"><h2 class="m-0">' . $words->get('members') . '</h2></div>';
-$User = new APP_User;
+// $User = new APP_User;
 $words = new MOD_words();
 $layoutbits = new MOD_layoutbits;
 $url = '/places/' . htmlspecialchars($this->countryName) . '/' . $this->countryCode . '/';
@@ -43,11 +43,11 @@ if (!$this->members) {
         ?>
 
         <div class="col-12 col-sm-6 col-lg-4 col-xl-3 media">
-            <? echo MOD_layoutbits::PIC_75_75($member->username,''); ?>
+            <?php echo MOD_layoutbits::PIC_75_75($member->username,''); ?>
             <div class="media-body ml-3">
                 <p class="m-0 mb-2">
                     <a href="members/<?= $member->username; ?>"><?= $member->username; ?></a><br>
-                    <? echo $words->get("yearsold",$member->age); ?>
+                    <?php echo $words->get("yearsold",$member->age); ?>
                 </p>
                 <div class="m-0 mb-2 d-flex small">
                     <div class="mr-1"><i class="fa fa-2x fa-map-marker-alt"></i></div>
@@ -56,9 +56,9 @@ if (!$this->members) {
             </div>
         </div>
 
-        <? }
+        <?php }
 }
 ?>
 <div class="col-12">
-<? $pager->render(); ?>
+<?php $pager->render(); ?>
 </div>

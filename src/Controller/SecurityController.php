@@ -2,10 +2,15 @@
 
 namespace App\Controller;
 
+use App\Security\AccountBannedException;
+use App\Security\AccountDeniedLoginException;
+use App\Security\AccountMailNotConfirmedException;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Security;
+use Symfony\Component\Security\Core\Exception\AccountExpiredException;
+use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 /**
@@ -18,22 +23,59 @@ class SecurityController extends AbstractController
      * @Route("/login", name="security_login", defaults={"access_denied_redirect" = "/"}))
      * @Route("/login_check", name="security_check", defaults={"access_denied_redirect" = "/"}))
      *
-     * @param AuthenticationUtils $helper
-     *
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @return Response
      */
     public function loginAction(AuthenticationUtils $helper)
     {
-        // get the login error if there is one
-        $error = $helper->getLastAuthenticationError();
+        $user = $this->getUser();
+        if (null !== $user) {
+            return $this->redirectToRoute('homepage');
+        }
 
-        // last username entered by the user
+        $error = $helper->getLastAuthenticationError();
         $lastUsername = $helper->getLastUsername();
 
-        return $this->render('security/login.html.twig', [
-            'last_username' => $lastUsername,
-            'error' => $error,
-        ]);
+        $showInvalidCredentialsHint = false;
+        $showResendConfirmationLink = false;
+        $showBannedHint = false;
+        $showExpiredHint = false;
+        $showNotAllowedToLogin = false;
+        if (\is_object($error)) {
+            switch (\get_class($error)) {
+                case AccountMailNotConfirmedException::class:
+                    $showResendConfirmationLink = ($lastUsername) ? true : false;
+                    break;
+                case BadCredentialsException::class:
+                    $showInvalidCredentialsHint = true;
+                    break;
+                case AccountBannedException::class:
+                    $showBannedHint = true;
+                    break;
+                case AccountDeniedLoginException::class:
+                    $showNotAllowedToLogin = true;
+                    break;
+                case AccountExpiredException::class:
+                    $showExpiredHint = true;
+                    break;
+                default:
+                    ;
+            }
+        }
+
+        $content = $this->render(
+            'security/login.html.twig',
+            [
+                'last_username' => $lastUsername,
+                'error' => $error,
+                'resend_confirmation' => $showResendConfirmationLink,
+                'invalid_credentials' => $showInvalidCredentialsHint,
+                'member_banned' => $showBannedHint,
+                'member_expired' => $showExpiredHint,
+                'member_not_allowed_to_login' => $showNotAllowedToLogin,
+            ]
+        );
+
+        return $content;
     }
 
     /**

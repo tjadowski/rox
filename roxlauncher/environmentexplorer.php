@@ -7,13 +7,20 @@
 
 use App\Utilities\SessionTrait;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Zend\Uri\Exception\InvalidUriException;
 use Zend\Uri\Http;
+
 
 class EnvironmentExplorer
 {
     use SessionTrait;
 
-    public function __construct() {
+    private $urlGenerator;
+
+    public function __construct(UrlGeneratorInterface $urlGenerator = null) {
+        $this->urlGenerator = $urlGenerator;
         $this->setSession();
     }
 
@@ -51,11 +58,9 @@ class EnvironmentExplorer
 
     protected function mergeNewConfig(array $settings, $dsn, $db_user, $db_password)
     {
-        $request = \Symfony\Component\HttpFoundation\Request::createFromGlobals();
-
-        $uri = (new Http($request->getUri()))
-            ->setScheme('http')
-            ->setPath('');
+        $uri = (null === $this->urlGenerator) ?
+            'http://localhost/' :
+            $this->urlGenerator->generate('homepage', [], UrlGenerator::ABSOLUTE_URL);
 
         return array_replace_recursive($settings, [
             'db' => [
@@ -64,9 +69,9 @@ class EnvironmentExplorer
                 'password' => $db_password,
             ],
             'env' => [
-                'baseuri' => $uri->toString() . '/',
-                'baseuri_http' => $uri->toString() . '/',
-                'baseuri_https' => $uri->setScheme('https')->toString() . '/',
+                'baseuri' => $uri,
+                'baseuri_http' => str_replace('https://', 'http://', $uri),
+                'baseuri_https' => str_replace('http://', 'https://', $uri),
             ],
         ]);
     }
@@ -112,6 +117,7 @@ class EnvironmentExplorer
         $settings = $loader->load(array(
             SCRIPT_BASE.'rox_default.ini',
             SCRIPT_BASE.(isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'cronjob').'.ini',
+            SCRIPT_BASE.'rox_local.ini',
             SCRIPT_BASE.'rox_secret.ini'
         ));
 
@@ -205,8 +211,8 @@ class EnvironmentExplorer
         }
 
         // if (empty ($_COOKIE[session_name ()]) ) {
-        if (empty ($_COOKIE[$this->_session->getName()]) ) {
-            
+        if (empty ($_COOKIE[$this->session->getName()]) ) {
+
             PVars::register('cookiesAccepted', false);
         } else {
             PVars::register('cookiesAccepted', true);
@@ -242,7 +248,7 @@ class EnvironmentExplorer
         // This parameter if set to True will force each call to HasRight to look in
         // the database, this is usefull when a right is update to force it to be used
         // immediately, of course in the long run it slow the server
-        $_SYSHCVOL['ReloadRight'] = 'False'; // Deprecated use ($this->_session->get('Param')->ReloadRightsAndFlags instead
+        $_SYSHCVOL['ReloadRight'] = 'False'; // Deprecated use ($this->session->get('Param')->ReloadRightsAndFlags instead
 
         // This parameter if the name of the database with (a dot) where are stored crypted data, there is no cryptation it it is left blank
         $_SYSHCVOL['Crypted'] = $_SYSHCVOL['CRYPT_DB'].'.';
@@ -275,7 +281,8 @@ class EnvironmentExplorer
          $_SYSHCVOL['Accomodation'] = array (   'dependonrequest',  'neverask', 'anytime');
 
         // possible lenght of stay
-        $_SYSHCVOL['CommentsRelation'] = array ('hewasmyguest', 'hehostedme', 'OnlyOnce', 'HeIsMyFamily', 'HeHisMyOldCloseFriend','NeverMetInRealLife');
+        $_SYSHCVOL['CommentsRelation'] = array ('hewasmyguest', 'hehostedme', 'OnlyOnce', 'HeIsMyFamily', 'HeHisMyOldCloseFriend', 'CommunicatedOnline',
+            /* 'NeverMetInRealLife'  Comment out after discussion with the SafetyTeam */);
 
         $_SYSHCVOL['EvaluateEventMessageReceived'] = "Yes"; // If set to "Yes" events messages received is evaludated at each page refresh
         $_SYSHCVOL['UploadPictMaxSize'] = 500000; // This define the size of the max loaded pictures
@@ -315,12 +322,12 @@ class EnvironmentExplorer
     {
 //         // TODO: This is maybe not the best place to do this,
 //         // but so far I don't know a better one.
-//         if (!$this->_session->has( 'lang' ) || !$this->_session->has( 'IdLanguage' ) {
+//         if (!$this->session->has( 'lang' ) || !$this->session->has( 'IdLanguage' ) {
 //             // normally either none or both of them are set.
-//             $this->_session->set( 'lang', 'en' )
-//             $this->_session->set( 'IdLanguage', 0 )
+//             $this->session->set( 'lang', 'en' )
+//             $this->session->set( 'IdLanguage', 0 )
 //         }
-//         PVars::register('lang', $this->_session->get('lang'));
+//         PVars::register('lang', $this->session->get('lang'));
     }
 
 
@@ -354,9 +361,9 @@ class EnvironmentExplorer
         // extensions mechanism
 
         $autoload_folders = array();
-        if (!$this->_session->has($this->_session->get('extension_folders'))) {
+        if (!$this->session->has($this->session->get('extension_folders'))) {
             // nothing
-        } else if (!is_string($ext_dirs_encoded = $this->_session->get('extension_folders'))) {
+        } else if (!is_string($ext_dirs_encoded = $this->session->get('extension_folders'))) {
             // nothing
         } else {
             $ext_folders = preg_split("/[,\n\r\t ]+/", $ext_dirs_encoded);

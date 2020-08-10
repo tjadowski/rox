@@ -42,7 +42,7 @@ class HostingRequestType extends AbstractType
                         'message' => 'request.error.arrival.empty',
                     ]),
                     new LessThanOrEqual([
-                        'propertyPath' => 'parent.all[departure].data',
+                        'propertyPath' => '[departure][data]',
                         'message' => 'request.error.arrival.after.departure',
                     ]),
                 ],
@@ -71,6 +71,9 @@ class HostingRequestType extends AbstractType
                 ],
                 'invalid_message' => 'request.error.number_of_travellers',
                 'constraints' => [
+                    new NotBlank([
+                        'message' => 'request.error.numberoftravellers.empty',
+                    ]),
                     new LessThanOrEqual(20),
                     new GreaterThanOrEqual(1),
                 ],

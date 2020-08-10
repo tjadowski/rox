@@ -9,21 +9,23 @@
 {% endblock %}
 
 {% block javascripts %}
-    <script src="{{ asset('build/jquery_ui.js') }}"></script>
-    <script src="{{ asset('build/member/autocomplete.js') }}"></script>
+    {{ encore_entry_script_tags('jquery_ui') }}
+    {{ encore_entry_script_tags('member/autocomplete') }}
 {% endblock %}
 
 {% block stylesheets %}
-    <link rel="stylesheet" href="{{ asset('build/jquery_ui.css') }}" />
+    {{ encore_entry_link_tags('jquery_ui') }}
 {% endblock stylesheets %}
 
 {% block content %}
+    {%  if form is defined %}
     {% form_theme form 'bootstrap_4_horizontal_layout.html.twig' %}
     {{ form_start(form) }}
     {{ form_rest(form) }}
     <button type="submit" class="btn btn-primary">{{ 'button.update' | trans }}</button>
     {{ form_end(form) }}
-    <div class="log"></div>
+    {% endif %}
+    <div class="log mb-3"></div>
     {% if logs.nbResults == 0 %}
         <div class="alert alert-warning">{{ 'admin.logs.no.logs' | trans }}</div>
     {% else %}
@@ -43,7 +45,7 @@
         {% for log in logs.currentPageResults %}
             <tr>
                 <td>{{ log.type }}</td>
-                <td>{{ log.logMessage }}</td>
+                <td>{{ log.logMessage | raw }}</td>
                 <td>{{ log.Username }}</td>
                 <td>{{ log.created }}</td>
             </tr>

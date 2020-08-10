@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: bla
@@ -17,6 +18,6 @@ class AccountMailNotConfirmedException extends AccountStatusException
      */
     public function getMessageKey()
     {
-        return "Please check your spam folder as your email address hasn't been confirmed yet.";
+        return 'login.mail.not_confirmed';
     }
 }

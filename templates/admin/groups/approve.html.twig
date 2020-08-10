@@ -22,8 +22,8 @@
                 <tbody>
                     {% for group in groups %}
                         <tr>
-                            <td><p><strong>{{ group.Name }}</strong><br>
-                                    <small>Created: {{ group.created|localizeddate }}</small></p>
+                            <td><p><strong><a href="{{ url('group_start', {'group_id': group.id}) }}">{{ group.Name }}</a></strong><br>
+                                    <small>Created: {{ group.created|format_date }}</small></p>
                                 {% if group.approved == constant('App\\Entity\\Group::IN_DISCUSSION') %}
                                     <p class="alert alert-danger my-2">{{ 'Group approval under discussion' }}</p>{% endif %}
                                 </td>
@@ -31,12 +31,12 @@
                                      <small class="text-muted">{{ description.Language.WordCode|lower|trans }} ({{ locale }})</small><br>{{ description.Sentence|purify }}
                                 {% endfor %}
                                 </td>
-                            <td>{% if group.members|first %}{{ macros.avatarstack((group.members|first).Username) }}{% endif %}</td>
+                            <td>{% if group.members|first %}{{ macros.avatarstack((group.members|first).Username, 50) }}{% endif %}</td>
                             <td class="text-center">
-                                <a href="{{ path('admin_groups_approve', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-check" title="{{ 'Approve group'|trans }}"></i></a><br>
-                                <a href="{{ path('admin_groups_dismiss', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-ban" title="{{ 'Dismiss group'|trans }}"></i></a>
+                                <a href="{{ path('admin_groups_approve', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-check" title="{{ 'admin.groups.create.approve'|trans }}"></i></a><br>
+                                <a href="{{ path('admin_groups_dismiss', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-ban" title="{{ 'admin.groups.create.dismiss'|trans }}"></i></a>
                                 {% if group.approved != constant('App\\Entity\\Group::IN_DISCUSSION') %}<br>
-                                    <a href="{{ path('admin_groups_discuss', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-comments" title="{{ 'Move group to discussion queue'|trans }}"></i></a>
+                                    <a href="{{ path('admin_groups_discuss', { 'id': group.id }) }}"><i class="fa fa-2x fa-fw fa-comments" title="{{ 'admin.groups.create.discuss'|trans }}"></i></a>
                                 {% endif %}
                             </td>
                         </tr>

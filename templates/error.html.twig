@@ -6,27 +6,24 @@
     <link rel="shortcut icon" href="/favicon.ico">
 
     <title>
-        {%- spaceless -%}
+        {% apply spaceless %}
             {% if block('title') is defined %}
                 {{ block('title') | trim }} |
             {% endif %} BeWelcome
-        {%- endspaceless -%}
+        {% endapply %}
     </title>
 
     <meta name="description" content="{{ 'default_meta_description' | trans }}">
     <meta name="keywords" content="{{ 'default_meta_keyword' | trans }}">
     <meta name="robots" content="{{ robots }}">
 
-    <link rel="stylesheet" media="screen" href="{{ asset('build/bewelcome.css') }}" />
-    <!-- link rel="stylesheet" media="print" href="{{ asset('build/print.css') }}" / -->
-
+    {{ encore_entry_link_tags('bewelcome') }}
     {% block stylesheets %}{% endblock %}
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
-    <link rel="stylesheet" href="{{ asset('build/bewelcome.css') }}" />
 </head>
 <body>
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-primary navbar-shadow bordert-1 borderb-1">
-    <div class="container">
+    <div class="container-lg">
         <a class="navbar-brand d-none d-lg-inline" href="{{ url('homepage') }}"><img
                 src="{{ asset('images/logo_index_top.png') }}"
                 alt="BeWelcome"/></a>
@@ -41,12 +38,12 @@
     </div>
 </nav>
 <main role="main">
-    <div class="container">
+    <div class="container-lg">
         <h1>Page not found</h1>
 
     {% set blockcontent %}{% block content %}{% endblock content %}{% endset %}
 
-    {% if is_granted('IS_AUTHENTICATED_FULLY') %}
+    {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
         <p>
             Hi {{ app.user.Username }},<br>
             {{ blockcontent | raw }}

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Carbon\Carbon;
 use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -11,6 +12,9 @@ use Doctrine\ORM\Mapping as ORM;
  * @ORM\Table(name="privilegescopes")
  * @ORM\Entity
  * @ORM\HasLifecycleCallbacks
+ *
+ * @SuppressWarnings(PHPMD)
+ * Auto generated class do not check mess
  */
 class PrivilegeScope
 {
@@ -76,17 +80,17 @@ class PrivilegeScope
     /**
      * Get updated.
      *
-     * @return DateTime
+     * @return Carbon
      */
     public function getUpdated()
     {
-        return $this->updated;
+        return Carbon::instance($this->updated);
     }
 
     /**
-     * Set idmember.
+     * Set member.
      *
-     * @param int $member
+     * @param Member $member
      *
      * @return PrivilegeScope
      */
@@ -177,6 +181,16 @@ class PrivilegeScope
     public function getType()
     {
         return $this->type;
+    }
+
+    /**
+     * Triggered on persist.
+     *
+     * @ORM\PrePersist
+     */
+    public function onPrePersist()
+    {
+        $this->updated = new DateTime('now');
     }
 
     /**

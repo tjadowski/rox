@@ -1,29 +1,37 @@
-const CKEditorWebpackPlugin = require( '@ckeditor/ckeditor5-dev-webpack-plugin' );
+const CKEditorWebpackPlugin = require('@ckeditor/ckeditor5-dev-webpack-plugin');
 const {styles} = require('@ckeditor/ckeditor5-dev-utils');
-var Encore = require('@symfony/webpack-encore');
+
+let Encore = require('@symfony/webpack-encore');
+
+// Manually configure the runtime environment if not already configured yet by the "encore" command.
+// It's useful when you use tools that rely on webpack.config.js file.
+if (!Encore.isRuntimeEnvironmentConfigured()) {
+    Encore.configureRuntimeEnvironment(process.env.NODE_ENV || 'dev');
+}
 
 Encore
-//    .configureRuntimeEnvironment('dev')
-    .addPlugin(new CKEditorWebpackPlugin({
-        // .. CKEditor options like language and stuf...
-        language: 'en',
-        additionalLanguages: 'all'
-    }))
-    .enableSingleRuntimeChunk()
+    // directory where compiled assets will be stored
     .setOutputPath('public/build/')
+    // public path used by the web server to access the output path
     .setPublicPath('/build')
+    .addPlugin(new CKEditorWebpackPlugin({
+        language: 'en',
+        additionalLanguages: 'all',
+        outputDirectory: 'cktranslations',
+        buildAllTranslationsToSeparateFiles: true
+    }))
+    .splitEntryChunks()
+    .enableSingleRuntimeChunk()
     .cleanupOutputBeforeBuild()
     .addEntry('bewelcome', './assets/js/bewelcome.js')
-//     .addEntry('print', './assets/scss/print.scss')
+    .addEntry('floating_labels', './assets/scss/floating_labels.scss')
     .addEntry('jquery_ui', './assets/js/jquery_ui.js')
-    .addEntry('backwards', './assets/js/backwards.js')
     .addEntry('signup/signup', './assets/js/signup.js')
     .addEntry('landing', './assets/js/landing/landing.js')
     .addEntry('scrollmagic', './assets/js/scrollmagic.js')
     .addEntry('search/searchpicker', './assets/js/search/searchpicker.js')
     .addEntry('search/loadcontent', './assets/js/search/loadajax.js')
     .addEntry('search/search', './assets/js/search/search.js')
-
     .addEntry('tempusdominus', './assets/js/tempusdominus.js')
     .addEntry('requests', './assets/js/requests.js')
     .addEntry('treasurer', './assets/js/treasurer.js')
@@ -34,14 +42,19 @@ Encore
     .addEntry('chartjs', './node_modules/chart.js/dist/Chart.js')
     .addEntry('offcanvas', './assets/js/offcanvas.js')
     .addEntry('profile/profile', './assets/js/profile.js')
-    .addEntry( 'updatecounters', './assets/js/updateCounters.js')
-    .addEntry( 'lightbox', './assets/js/lightbox.js')
-    .addEntry( 'gallery', './assets/js/gallery.js')
+    .addEntry('updatecounters', './assets/js/updateCounters.js')
+    .addEntry('lightbox', './assets/js/lightbox.js')
+    .addEntry('gallery', './assets/js/gallery.js')
     .addEntry('bsfileselect', './assets/js/bsfileselect.js')
     .addEntry('email', './assets/scss/email.scss')
-//    .addEntry( 'roxeditor', './assets/js/roxeditor.js')
+    .addEntry('roxeditor', './assets/js/roxeditor.js')
+    .addEntry('rangeslider', './assets/js/rangeslider.js')
+    //    .addEntry('roxinlineeditor', './assets/js/roxinlineeditor.js')
 
-    .enableSassLoader()
+    .enableSassLoader(options => {
+        // Prefer using sass instead of node-sass to not depend on Python
+        options.implementation = require('sass');
+    })
     // allow legacy applications to use $/jQuery as a global variable, make popper visible for bootstrap
     .autoProvidejQuery()
     .autoProvideVariables({
@@ -61,7 +74,7 @@ Encore
         use: [{
             loader: 'expose-loader',
             options: 'jQuery'
-        },{
+        }, {
             loader: 'expose-loader',
             options: '$'
         }]
@@ -70,21 +83,56 @@ Encore
         test: require.resolve('select2'),
         use: "imports-loader?define=>false"
     })
-    .addLoader({
-        test: /\.svg$/i,
-        use: 'raw-loader'
-    })
-    .enablePostCssLoader(options => {
-        Object.assign(options, styles.getPostCssConfig({
-            themeImporter: {
-                themePath: require.resolve( '@ckeditor/ckeditor5-theme-lark' )
-            }
-        }));
-    })
     .enableSourceMaps(!Encore.isProduction())
     .enableVersioning(true)
+    // Use raw-loader for CKEditor 5 SVG files.
+    .addRule({
+        test: /ckeditor5-[^/\\]+[/\\]theme[/\\]icons[/\\][^/\\]+\.svg$/,
+        loader: 'raw-loader'
+    })
+
+    // Configure other image loaders to exclude CKEditor 5 SVG files.
+    .configureLoaderRule('images', loader => {
+        loader.exclude = /ckeditor5-[^/\\]+[/\\]theme[/\\]icons[/\\][^/\\]+\.svg$/;
+    })
+
+    // Configure PostCSS loader.
+    .addLoader({
+        test: /ckeditor5-[^/\\]+[/\\]theme[/\\].+\.css$/,
+        loader: 'postcss-loader',
+        options: styles.getPostCssConfig({
+            themeImporter: {
+                themePath: require.resolve('@ckeditor/ckeditor5-theme-lark')
+            }
+        })
+    })
 ;
 
-// console.log(JSON.stringify(Encore.getWebpackConfig(), null, 4));
+const assetsConfig = Encore.getWebpackConfig();
 
-module.exports = Encore.getWebpackConfig();
+const path = require('path');
+const webpack = require('webpack');
+const WorkboxPlugin = require('workbox-webpack-plugin');
+
+workboxConfig = {
+        mode: "development",
+        entry: {
+            main: "./assets/js/index.js"
+        },
+        output: {
+            filename: "[name].js",
+            chunkFilename: "[name].bundle.js",
+            path: path.resolve(__dirname, "public")
+        },
+        plugins: [
+            new WorkboxPlugin.GenerateSW({
+               // these options encourage the ServiceWorkers to get in there fast
+               // and not allow any straggling "old" SWs to hang around
+               clientsClaim: true,
+               skipWaiting: true,
+             }),
+        ],
+        devtool: "source-map"
+};
+
+module.exports = [ assetsConfig, workboxConfig ];

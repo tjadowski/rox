@@ -4,10 +4,13 @@ namespace App\Model;
 
 use App\Entity\Activity;
 use App\Entity\Member;
+use App\Entity\Message;
+use App\Entity\Preference;
 use App\Repository\ActivityRepository;
 use App\Utilities\ManagerTrait;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMException;
+use Doctrine\ORM\Query\Expr;
 use Exception;
 
 class LandingModel
@@ -25,40 +28,18 @@ class LandingModel
      *   'time': '10 minutes ago',
      *   'read': true
      *
-     * @param Member $member
      * @param $unread
      * @param int|bool $limit
      *
      * @return array
      */
-    public function getMessages(Member $member, $unread, $limit = 0)
+    public function getMessagesAndRequests(Member $member, $unread, $limit = 5)
     {
-        $qb = $this->getManager()->createQueryBuilder();
-        $qb
-            ->select('m')
-            ->from('App:Message', 'm')
-            ->where('m.receiver = :member')
-            ->setParameter('member', $member);
-        if ($unread) {
-            $qb
-                ->andWhere(
-                    $qb->expr()->orX(
-                        $qb->expr()->eq('m.firstRead', "'0000-00-00 00:00.00'"),
-                        $qb->expr()->isNull('m.firstRead')
-                    )
-                );
-        }
+        $messageRepository = $this->getManager()->getRepository(Message::class);
 
-        if (0 !== $limit) {
-            $qb->setMaxResults($limit);
-        }
+        $messagesAndRequests = $messageRepository->getLatestMessagesAndRequests($member, $unread, $limit);
 
-        // throw new Exception($qb->getDQL());
-
-        return $qb
-            ->orderBy('m.created', 'DESC')
-            ->getQuery()
-            ->getResult();
+        return $messagesAndRequests;
     }
 
     /**
@@ -69,7 +50,6 @@ class LandingModel
      *   'user': 'Member-102',
      *   'time': '10 minutes ago',.
      *
-     * @param Member   $member
      * @param int|bool $limit
      *
      * @return array
@@ -96,7 +76,6 @@ class LandingModel
      *
      * Depends on checkboxes shown above the display
      *
-     * @param Member   $member
      * @param bool     $groups
      * @param bool     $forum
      * @param bool     $following
@@ -116,8 +95,12 @@ class LandingModel
         $queryBuilder
             ->select('ft')
             ->from('App:ForumThread', 'ft')
-            ->where("ft.threadDeleted = 'NotDeleted'")
-            ->orderBy('ft.lastPostid', 'desc');
+            ->join('App:ForumPost', 'fp', Expr\Join::WITH, 'ft.lastPost = fp.id')
+//            ->addSelect('fp.created')
+            ->where("ft.deleted = 'NotDeleted'")
+            ->andWhere("fp.deleted = 'NotDeleted'")
+            ->orderBy('fp.created', 'desc')
+        ;
 
         $groupIds = [];
         if ($groups) {
@@ -125,15 +108,16 @@ class LandingModel
                 return $group->getId();
             }, $member->getGroups());
         }
-        if ($forum) {
-            // The forum is identified by a group set to 0
-            array_push($groupIds, 0);
-        }
         $queryBuilder
             ->andWhere('ft.group IN (:groups)')
             ->setParameter('groups', $groupIds);
+        if ($forum) {
+            $queryBuilder
+                ->orWhere('ft.group IS NULL');
+        }
 
         if ($following) {
+            // \todo: Add subscriptions?
         }
 
         if ($limit) {
@@ -150,17 +134,28 @@ class LandingModel
     /**
      * Generates activities (near you) for display on home page.
      *
-     * @param Member $member
+     * @param mixed $online
      *
      * @throws Exception
      *
      * @return array
      */
-    public function getActivities(Member $member)
+    public function getUpcomingActivities(Member $member, $online)
     {
+        $em = $this->getManager();
+        $preferenceRepository = $em->getRepository(Preference::class);
+
+        /** @var Preference $preference */
+        $preference = $preferenceRepository->findOneBy(['codename' => Preference::SHOW_ONLINE_ACTIVITIES]);
+        $memberPreference = $member->getMemberPreference($preference);
+        $value = ($online) ? 'Yes' : 'No';
+        $memberPreference->setValue($value);
+        $em->persist($memberPreference);
+        $em->flush();
+
         /** @var ActivityRepository $repository */
         $repository = $this->getManager()->getRepository(Activity::class);
-        $activities = $repository->findUpcomingAroundLocation($member->getCity());
+        $activities = $repository->findUpcomingAroundLocation($member, $online);
 
         return $activities;
     }
@@ -174,8 +169,6 @@ class LandingModel
     }
 
     /**
-     * @param Member $member
-     *
      * @return array
      */
     public function getTravellersInAreaOfMember(Member $member)
@@ -184,21 +177,16 @@ class LandingModel
     }
 
     /**
-     * @param Member $member
      * @param $accommodation
      *
      * @return Member
      */
     public function updateMemberAccommodation(Member $member, $accommodation)
     {
-        try {
-            $member->setAccommodation($accommodation);
-            $em = $this->getManager();
-            $em->persist($member);
-            $em->flush($member);
-        } catch (OptimisticLockException $e) {
-        } catch (ORMException $e) {
-        }
+        $member->setAccommodation($accommodation);
+        $em = $this->getManager();
+        $em->persist($member);
+        $em->flush($member);
 
         return $member;
     }

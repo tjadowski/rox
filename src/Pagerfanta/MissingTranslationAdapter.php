@@ -5,6 +5,7 @@ namespace App\Pagerfanta;
 use Doctrine\DBAL\Driver\Connection;
 use Pagerfanta\Adapter\AdapterInterface;
 use PDO;
+use Traversable;
 
 class MissingTranslationAdapter implements AdapterInterface
 {
@@ -24,11 +25,6 @@ class MissingTranslationAdapter implements AdapterInterface
      * SearchAdapter constructor.
      *
      * @SuppressWarnings(PHPMD.StaticAccess)
-     *
-     * @param Connection $connection
-     * @param string     $locale
-     * @param string     $code
-     * @param bool       $missing
      */
     public function __construct(Connection $connection, string $locale, string $code)
     {
@@ -39,17 +35,19 @@ class MissingTranslationAdapter implements AdapterInterface
         $this->query = "
             SELECT
                 code,
+                domain,
                 shortcode,
-                Sentence,
+                sentence,
                 created
-            FROM 
-                words 
-            WHERE 
-                shortCode = 'en' 
-                AND isArchived IS NULL 
+            FROM
+                words
+            WHERE
+                shortCode = 'en'
+                AND (isArchived IS NULL OR isArchived = 0)
+                AND (donottranslate = 'No')
                 AND code NOT IN (SELECT code FROM words WHERE shortCode = '{$this->locale}')";
         if (!empty($this->code)) {
-            $this->query .= " AND code LIKE '%".$this->code."%'";
+            $this->query .= " AND code LIKE '%" . $this->code . "%'";
         }
         $this->query .= '
             ORDER BY created desc';
@@ -62,17 +60,18 @@ class MissingTranslationAdapter implements AdapterInterface
      */
     public function getNbResults()
     {
-        $query = "            
+        $query = "
             SELECT
                 count(*) as cnt
-            FROM 
-                words 
-            WHERE 
-                shortCode = 'en' 
-                AND isArchived IS NULL 
+            FROM
+                words
+            WHERE
+                shortCode = 'en'
+                AND (isArchived IS NULL OR isArchived = 0)
+                AND (donottranslate = 'No')
                 AND code NOT IN (SELECT code FROM words WHERE shortCode = '{$this->locale}')";
         if (!empty($this->code)) {
-            $query .= " AND code LIKE '%".$this->code."%'";
+            $query .= " AND code LIKE '%" . $this->code . "%'";
         }
         $statement = $this->connection->query($query);
         $result = $statement->fetch(PDO::FETCH_OBJ);
@@ -86,11 +85,11 @@ class MissingTranslationAdapter implements AdapterInterface
      * @param int $offset the offset
      * @param int $length the length
      *
-     * @return array|\Traversable the slice
+     * @return array|Traversable the slice
      */
     public function getSlice($offset, $length)
     {
-        $query = $this->query.' LIMIT '.$offset.', '.$length;
+        $query = $this->query . ' LIMIT ' . $offset . ', ' . $length;
         $statement = $this->connection->query($query);
 
         return $statement->fetchAll();

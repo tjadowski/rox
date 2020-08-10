@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: saeed
@@ -9,6 +10,8 @@
 namespace App\Model;
 
 use App\Entity\CommunityNews;
+use App\Entity\CommunityNewsComment;
+use App\Repository\CommunityNewsCommentRepository;
 use App\Repository\NotificationRepository;
 use App\Utilities\ManagerTrait;
 use Doctrine\ORM\NonUniqueResultException;
@@ -55,10 +58,7 @@ class CommunityNewsModel
         /** @var NotificationRepository $repository */
         $repository = $this->getManager()->getRepository(CommunityNews::class);
 
-        try {
-            return $repository->getLatest();
-        } catch (NonUniqueResultException $e) {
-        }
+        return $repository->getLatest();
     }
 
     public function getCommentsPaginator(CommunityNews $communityNews, $page, $limit)
@@ -70,5 +70,26 @@ class CommunityNewsModel
             ->setCurrentPage($page);
 
         return $pagerfanta;
+    }
+
+    public function getLatestCommunityNewsComments($page, $limit)
+    {
+        /** @var CommunityNewsCommentRepository $repository */
+        $repository = $this->getManager()->getRepository(CommunityNewsComment::class);
+
+        return $repository->findLatestCommunityNewsComments($page, $limit);
+    }
+
+    public function deleteAsSpamByChecker($commentIds)
+    {
+        // delete all activities based on there ids
+        $em = $this->getManager();
+        /** @var CommunityNewsCommentRepository $repository */
+        $communityNewsCommentRepository = $em->getRepository(CommunityNewsComment::class);
+        $comments = $communityNewsCommentRepository->findBy(['id' => $commentIds]);
+        foreach ($comments as $comment) {
+            $em->remove($comment);
+        }
+        $em->flush();
     }
 }

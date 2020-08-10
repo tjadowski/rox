@@ -161,7 +161,7 @@ SQL
 
       public function get_relation_between_members($IdMember_rel)
       {
-          $myself = $this->getMemberWithId($this->_session->get('IdMember'));
+          $myself = $this->getMemberWithId($this->session->get('IdMember'));
           $member = $this->getMemberWithId($IdMember_rel);
           $words = $this->getWords();
           $all_relations = $member->all_relations();
@@ -297,18 +297,18 @@ WHERE
         } else {
             // check if current session language is a profile language
             $found = false;
-            if ($this->_session->has( 'IdMember' )) {
-                $memberId = intval($this->_session->get('IdMember'));
+            if ($this->session->has( 'IdMember' )) {
+                $memberId = intval($this->session->get('IdMember'));
                 $member = $this->createEntity('Member', $memberId);
                 $member->set_profile_languages();
                 $langs = $member->profile_languages;
                 foreach($langs as $lang) {
-                    $found = ($lang->ShortCode == $this->_session->get('lang'));
+                    $found = ($lang->ShortCode == $this->session->get('lang'));
                     if ($found) break;
                 }
             }
             if ($found) {
-                $this->set_profile_language($this->_session->get('lang'));
+                $this->set_profile_language($this->session->get('lang'));
             } else {
                 // if no language is set use English
                 $this->set_profile_language("en");
@@ -378,46 +378,6 @@ SQL;
     }
 
     /**
-     * Set a member's profile public/private
-     */
-    public function set_public_profile ($IdMember,$Public = false)
-    {
-        $rr = $this->singleLookup(
-            "
-SELECT *
-FROM memberspublicprofiles
-WHERE IdMember = ".$IdMember
-         );
-        if (!$rr && $Public == true) {
-        $s = $this->dao->query("
-INSERT INTO
-    memberspublicprofiles
-    (
-    IdMember,
-    created,
-    Type
-    )
-VALUES
-    (
-    '$IdMember',
-    NOW(),
-    'normal'
-    )
-        ");
-            $this->logWrite("Set public profile", "Update Preference");
-        } elseif ($rr && $Public == false) {
-        $s = $this->dao->query("
-DELETE FROM
-    memberspublicprofiles
-WHERE
-    id = ". $rr->id
-        );
-            $this->logWrite("Remove public profile", "Update Preference");
-        }
-    }
-
-    
-    /**
      * Set preference if comment guidelines have been read.
      */
     public function setCommentGuidelinesRead() {
@@ -436,10 +396,10 @@ WHERE
             return false;
         }
 
-        $membersModel = new MembersModel($this->_session);
+        $membersModel = new MembersModel($this->session);
         $membersModel->set_preference($this->getLoggedInMember()->id, $readCommentGuidlinesPref->id, 1);
     }
-    
+
     public function getCommentGuidelinesRead() {
         $layoutbits = new MOD_layoutbits();
         $loggedInMember = $this->getLoggedInMember();
@@ -519,9 +479,6 @@ WHERE
         if (!isset($one_selected)) {
             $errors[] = 'Comment_NoCommentLengthSelected';
         }
-        if ($vars['Quality'] == "Good" && isset ($vars["Comment_NeverMetInRealLife"])) {
-            $errors[] = 'NoPositiveComment_if_NeverMetInRealLife';
-        }
         if (!isset ($vars["CommentGuidelines"])) {
             $errors[] = 'CommentMustAcceptGuidelines';
         }
@@ -540,7 +497,7 @@ WHERE
     {
         $return = true;
         $commentRecipient = $this->createEntity('Member', $vars['IdMember']);
-        $commentSender = $this->createEntity('Member', $this->_session->get('IdMember'));
+        $commentSender = $this->createEntity('Member', $this->session->get('IdMember'));
         // Mark if an admin's check is needed for this comment (in case it is "bad")
         $AdminAction = "NothingNeeded";
         if ($vars['Quality'] == "Bad") {
@@ -585,7 +542,7 @@ INSERT INTO
     )
     values (
         " . $vars['IdMember'] . ",
-        " . $this->_session->get('IdMember') . ",
+        " . $this->session->get('IdMember') . ",
         '" . $LenghtComments . "','" . $vars['Quality'] . "',
         '',
         '" . $this->dao->escape($vars['TextFree']) . "',
@@ -611,7 +568,7 @@ UPDATE
 SET
     AdminAction='" . $AdminAction . "',
     IdToMember=" . $vars['IdMember'] . ",
-    IdFromMember=" . $this->_session->get('IdMember') . ",
+    IdFromMember=" . $this->session->get('IdMember') . ",
     Relations='" . $LenghtComments . "',
     Quality='" . $vars['Quality'] . "',
     TextWhere='',
@@ -635,16 +592,16 @@ WHERE
             $c_add = ($vars['Quality'] == "Bad") ? '_bad' : '';
             $note = array(
                 'IdMember' => $vars['IdMember'],
-                'IdRelMember' => $this->_session->get('IdMember'),
+                'IdRelMember' => $this->session->get('IdMember'),
                 'Type' => 'profile_comment' . $c_add,
                 'Quality' => $vars['Quality'],
                 'commentText' => $vars['TextFree'],
                 'Link' => 'members/' . $commentRecipient->Username . '/comments',
                 'replyLink'   => 'members/' . $commentSender->Username . '/comments/add',
-                'reportLink'  => 'members/reportcomment/' . $commentRecipient->Username . '/' . $commentId,
+                'reportLink'  => 'members/' . $commentRecipient->Username . '/comment/' . $commentId . '/report',
                 'WordCode' => $noteWordCode
             );
-            
+
             if (!$TCom || $TCom->DisplayInPublic == 1) {
                 $this->sendCommentNotification($note, $messageWordCode, $messageSubjectWordCode);
             }
@@ -661,7 +618,7 @@ WHERE
         $return = true;
         $words = new MOD_words();
         $mReceiver=
-        $TData= $this->singleLookup("select * from specialrelations where IdRelation=".$vars["IdRelation"]." and IdOwner=".$this->_session->get("IdMember"));
+        $TData= $this->singleLookup("select * from specialrelations where IdRelation=".$vars["IdRelation"]." and IdOwner=".$this->session->get("IdMember"));
         $mReceiver=$this->getMemberWithId($vars["IdRelation"]) ;
 
         if (!isset ($TData->id) ) {
@@ -675,7 +632,7 @@ INSERT INTO
         created
     )
     values (
-        ".$this->_session->get("IdMember").",
+        ".$this->session->get("IdMember").",
         ".$vars['IdRelation'].",
         '".stripslashes($vars['stype'])."',
         ".$words->InsertInMTrad($this->dao->escape($vars['Comment']),"specialrelations.Comment",0).",
@@ -688,7 +645,7 @@ INSERT INTO
         } else $return = false;
         if ($return != false) {
             // Create a note (member-notification) for this action
-            $note = array('IdMember' => $vars['IdRelation'], 'IdRelMember' => $this->_session->get('IdMember'), 'Type' => 'relation', 'Link' => 'members/'.$vars['IdOwner'].'/relations/add','WordCode' => 'Notify_relation_new');
+            $note = array('IdMember' => $vars['IdRelation'], 'IdRelMember' => $this->session->get('IdMember'), 'Type' => 'relation', 'Link' => 'members/'.$vars['IdOwner'].'/relations/add','WordCode' => 'Notify_relation_new');
             $noteEntity = $this->createEntity('Note');
             $noteEntity->createNote($note);
         }
@@ -700,7 +657,7 @@ INSERT INTO
     {
         $return = true;
         $words = new MOD_words();
-        $TData= $this->singleLookup("select * from specialrelations where IdRelation=".$vars["IdRelation"]." and IdOwner=".$this->_session->get("IdMember"));
+        $TData= $this->singleLookup("select * from specialrelations where IdRelation=".$vars["IdRelation"]." and IdOwner=".$this->session->get("IdMember"));
         $mReceiver=$this->getMemberWithId($vars["IdRelation"]) ;
         if (isset ($TData->id)) {
             $str = "
@@ -710,7 +667,7 @@ SET
     Type = '".stripslashes($vars['stype'])."',
     Comment = ".$words->InsertInMTrad($this->dao->escape($vars['Comment']),"specialrelations.Comment",0)."
 WHERE
-    IdOwner = ".$this->_session->get("IdMember")." AND
+    IdOwner = ".$this->session->get("IdMember")." AND
     IdRelation = ".$vars['IdRelation']."
             ";
             $qry = $this->dao->query($str);
@@ -719,7 +676,7 @@ WHERE
         } else $return = false;
         if ($return != false) {
             // Create a note (member-notification) for this action
-            $note = array('IdMember' => $vars['IdRelation'], 'IdRelMember' => $this->_session->get('IdMember'), 'Type' => 'relation', 'Link' => 'members/'.$vars['IdOwner'].'/relations/add','WordCode' => 'Notify_relation_update');
+            $note = array('IdMember' => $vars['IdRelation'], 'IdRelMember' => $this->session->get('IdMember'), 'Type' => 'relation', 'Link' => 'members/'.$vars['IdOwner'].'/relations/add','WordCode' => 'Notify_relation_update');
             $noteEntity = $this->createEntity('Note');
             $noteEntity->createNote($note);
         }
@@ -734,7 +691,7 @@ WHERE
         $TData = array();
         $TData[1]= $this->singleLookup("select * from specialrelations where IdOwner=".$vars['IdOwner']." AND IdRelation=".$vars['IdRelation']);
         $TData[2]= $this->singleLookup("select * from specialrelations where IdOwner=".$vars['IdRelation']." AND IdRelation=".$vars['IdOwner']);
-        if (isset($TData) && count($TData[1]) > 0 && count($TData[2]) > 0 && isset($vars['confirm'])) {
+        if (isset($TData) && isset($TData[1]) && isset($TData[2]) > 0 && isset($vars['confirm'])) {
             foreach ($TData as $rel) {
                 $IdOwner = $rel->IdOwner;
                 $IdRelation = $rel->IdRelation;
@@ -854,25 +811,35 @@ WHERE
     public function checkMyPreferences(&$vars)
     {
         $errors = array();
-        $member = $this->createEntity('Member', $this->_session->get('IdMember'));
+        $member = $this->createEntity('Member', $this->session->get('IdMember'));
 
         // Password Check
         if (isset($vars['passwordnew']) && $vars['passwordnew'] != '') {
-        $query = "select id from members where id=" . $this->_session->get('IdMember') . " and PassWord=PASSWORD('" . $member->preparePassword($vars['passwordold']) . "')";
+            $query = "select password, PASSWORD('" . $vars['passwordold'] . "') AS mysql from members where id=" . $this->session->get('IdMember');
             $qry = $this->dao->query($query);
-            $rr = $qry->fetch(PDB::FETCH_OBJ);
-            if (!$rr || !array_key_exists('id', $rr))
+            $rr = $qry->fetch(PDB::FETCH_ASSOC);
+            if (!$rr || !array_key_exists('password', $rr)) {
                 $errors[] = 'ChangePasswordInvalidPasswordError';
-            if( isset($vars['passwordnew']) && strlen($vars['passwordnew']) > 0) {
-                if( strlen($vars['passwordnew']) < 6) {
-                    $errors[] = 'ChangePasswordPasswordLengthError';
-                }
-                if(isset($vars['passwordconfirm'])) {
-                    if(strlen(trim($vars['passwordconfirm'])) == 0) {
-                        $errors[] = 'ChangePasswordConfirmPasswordError';
-                    } elseif(trim($vars['passwordnew']) != trim($vars['passwordconfirm'])) {
-                        $errors[] = 'ChangePasswordMatchError';
-                    }
+            }
+            $password = $rr['password'];
+            $mysqlHash = $rr['mysql'];
+
+            $mysqlCorrect = ($password === $mysqlHash);
+            $bcryptCorrect = password_verify( $vars['passwordold'], $password);
+
+            if (!( $mysqlCorrect | $bcryptCorrect )) {
+                $errors[] = 'ChangePasswordInvalidPasswordError';
+            }
+        }
+        if( isset($vars['passwordnew']) && strlen($vars['passwordnew']) > 0) {
+            if( strlen($vars['passwordnew']) < 6) {
+                $errors[] = 'ChangePasswordPasswordLengthError';
+            }
+            if(isset($vars['passwordconfirm'])) {
+                if(strlen(trim($vars['passwordconfirm'])) == 0) {
+                    $errors[] = 'ChangePasswordConfirmPasswordError';
+                } elseif(trim($vars['passwordnew']) != trim($vars['passwordconfirm'])) {
+                    $errors[] = 'ChangePasswordMatchError';
                 }
             }
         }
@@ -929,13 +896,13 @@ ORDER BY
      *
      * @param int $language_id
      * @access public
-     * @return bool
+     * @return Language|bool
      */
-    public function setSessionLanguage($language_id)
+    public function getLanguage($language_id)
     {
         if (($lang = $this->createEntity('Language', $language_id)) && $lang->isLoaded())
         {
-            return $lang->setLanguage();
+            return $lang;
         }
         return false;
     }
@@ -1071,9 +1038,7 @@ ORDER BY
         /** @var Member $m */
         $m = $vars['member'];
 
-        // fantastic ... love the implementation. Fake
-        $CanTranslate = false;
-        // $CanTranslate = CanTranslate($vars["memberid"], $this->_session->get('IdMember'));
+        $CanTranslate = false; // CanTranslate($vars["memberid"], $this->session->get('IdMember'));
         $ReadCrypted = "MemberReadCrypted"; // This might be changed in the future
         if ($rights->hasRight('Admin') || $rights->hasRight('SafetyTeam') /* or $CanTranslate */) { // admin or CanTranslate can alter other profiles
             $ReadCrypted = "AdminReadCrypted"; // In this case the AdminReadCrypted will be used
@@ -1120,6 +1085,7 @@ ORDER BY
         $m->ProfileSummary = $words->ReplaceInMTrad($vars['ProfileSummary'],"members.ProfileSummary", $IdMember, $m->ProfileSummary, $IdMember);
         $m->WebSite = strip_tags($vars['WebSite']);
         $m->Accomodation = $vars['Accomodation'];
+        $m->hosting_interest = $vars['hosting_interest'];
         $m->Organizations = $words->ReplaceInMTrad($vars['Organizations'],"members.Organizations", $IdMember, $m->Organizations, $IdMember);
         $m->Occupation = $words->ReplaceInMTrad(strip_tags($vars['Occupation']),"members.Occupation", $IdMember, $m->Occupation, $IdMember);
         $m->ILiveWith = $words->ReplaceInMTrad($vars['ILiveWith'],"members.ILiveWith", $IdMember, $m->ILiveWith, $IdMember);
@@ -1203,16 +1169,6 @@ ORDER BY
             }
         }
 
-        // Update hosting eagerness data if necessary
-        $hesData = $this->getHostingEagernessData($m);
-        if ($hesData->endDate !== $vars['hes-duration']) {
-            $this->setHostingEagernessData($m, $vars['hes-id'], $vars['hes-duration'], $vars['hes-boost']);
-        }
-
-        if ($hesData->step < 0 && ($vars['hes-dont-boost'] === false)) {
-            $this->setHostingEagernessData($m, $vars['hes-id'], $vars['hes-duration'], $vars['hes-boost']);
-        }
-
         if (!empty($_FILES['profile_picture']) && !empty($_FILES['profile_picture']['tmp_name']))
         {
             if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0)
@@ -1230,7 +1186,7 @@ ORDER BY
             $m->chat_GOOGLE = $cryptModule->NewReplaceInCrypted(addslashes(strip_tags($vars['chat_GOOGLE'])),"members.chat_GOOGLE",$IdMember,$m->chat_GOOGLE, $IdMember, $this->ShallICrypt($vars,"chat_GOOGLE"));
         }
 
-        if ($IdMember == $this->_session->get('IdMember'))
+        if ($IdMember == $this->session->get('IdMember'))
         {
             $this->logWrite("Profile update by member himself [Status={$m->Status}]", "Profile update");
         }
@@ -1523,7 +1479,7 @@ VALUES
     {
         if (!empty($feedback))
         {
-            $feedback_model = new FeedbackModel($this->_session);
+            $feedback_model = new FeedbackModel($this->session);
             $feedback_model->sendFeedback(array(
                 "IdCategory"       => FeedbackModel::DELETE_PROFILE,
                 "FeedbackQuestion" => $feedback,
@@ -1583,6 +1539,7 @@ VALUES
     {
         $member = $this->createEntity('Member', $memberId);
         if ($member) {
+            MOD_log::get()->write("Set new status for " . $member->Username . ": " . $newStatus . " (was: " . $member->Status . ")", "Profile");
             $member->Status = $newStatus;
             $member->update();
             return true;
@@ -1916,20 +1873,25 @@ VALUES
      */
     private function setHostingEagernessData(\Member $member, $hesId, $hesEnddate, $hesBoost)
     {
-        $endDate = Carbon::createFromFormat('Y-m-d', $hesEnddate);
-        $time = mktime(23,59,0,$endDate->month, $endDate->day, $endDate->year);
-        $current = time();
-        $duration = floor(($time - $current) / 3600);
-        $step = floor(6220800 / ($duration * $duration));
-        if ($hesBoost === 'No') {
-            $step = -$step;
-        }
-        $current = $duration * $step;
-
-        if ($hesId == 0) {
-            $query = "INSERT INTO `hosting_eagerness_slider` SET `member_id` = {$member->id}, `endDate` = '{$hesEnddate}', `step` = {$step}, `remaining` = {$duration}, `current` = {$current}, `initialized` = NOW(), `updated` = NOW()";
+        if ($hesEnddate === '') {
+            // Remove the hosting eagerness row for this member
+            $query = "DELETE FROM  `hosting_eagerness_slider` WHERE `member_id` = {$member->id}";
         } else {
-            $query = "UPDATE `hosting_eagerness_slider` SET `member_id` = {$member->id}, `endDate` = '{$hesEnddate}', `step` = {$step}, `remaining` = {$duration}, `current` = {$current}, `initialized` = NOW(), `updated` = NOW() WHERE `id` = {$hesId}";
+            $endDate = Carbon::createFromFormat('Y-m-d', $hesEnddate);
+            $time = mktime(23,59,0,$endDate->month, $endDate->day, $endDate->year);
+            $current = time();
+            $duration = floor(($time - $current) / 3600);
+            $step = floor(6220800 / ($duration * $duration));
+            if ($hesBoost === 'No') {
+                $step = -$step;
+            }
+            $current = $duration * $step;
+
+            if ($hesId == 0) {
+                $query = "INSERT INTO `hosting_eagerness_slider` SET `member_id` = {$member->id}, `endDate` = '{$hesEnddate}', `step` = {$step}, `remaining` = {$duration}, `current` = {$current}, `initialized` = NOW(), `updated` = NOW()";
+            } else {
+                $query = "UPDATE `hosting_eagerness_slider` SET `member_id` = {$member->id}, `endDate` = '{$hesEnddate}', `step` = {$step}, `remaining` = {$duration}, `current` = {$current}, `initialized` = NOW(), `updated` = NOW() WHERE `id` = {$hesId}";
+            }
         }
         $this->dao->query($query);
     }

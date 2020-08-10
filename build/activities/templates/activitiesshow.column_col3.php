@@ -11,9 +11,9 @@ $login_url = 'login/' . htmlspecialchars(implode('/', $request), ENT_QUOTES);
 $purifierModule = new MOD_htmlpure();
 $purifier = $purifierModule->getActivitiesHtmlPurifier();
 $status = array();
-if ($this->_session->has('ActivityStatus')) {
-    $status = $this->_session->get('ActivityStatus');
-    $this->_session->remove('ActivityStatus');
+if ($this->session->has('ActivityStatus')) {
+    $status = $this->session->get('ActivityStatus');
+    $this->session->remove('ActivityStatus');
 }
 if (!empty($status)) {
     echo '<div class="col-12"><div class="alert alert-success" role="alert">' . $words->get($status[0], $status[1]) . '</div></div>';
@@ -45,7 +45,7 @@ if (empty($vars)) {
     </div>
     <div class="col-md-3 d-none d-md-block ml-md-auto mb-2 order-2">
         <div class="d-flex flex-row hidden-md-down pull-right">
-            <div class="pr-2 align-self-center"><i class="fa fa-3x fa-users"></i></div>
+            <div class="pr-2 align-self-center"><?php if ($this->activity->public) { ?><img src="images/online_meeting_noun_3384309.svg" width="32" height="32"><?php } else { ?><i class="fa fa-3x fa-users"></i><?php } ?></div>
             <div>
                 <p class="text-nowrap">
                     <?php if ($this->activity->attendeesYes != 0) {
@@ -78,13 +78,13 @@ if (empty($vars)) {
             <div class="d-flex flex-row justify-content-between">
                 <div class="h4"><?php echo $words->getSilent('activity.headline.join'); ?></div>
                 <div class="float-right">
-                <?
+                <?php
                 if ($this->activity->dateStart == $this->activity->dateEnd) {
                     echo '<i class="far fa-calendar-alt mr-1"></i>' . $this->activity->dateStart . '<br>';
-                    echo '<i class="far fa-clock mr-1"></i> <span class="compacttext back">' . $this->activity->timeStart . ' - ' . $this->activity->timeEnd . '</span><br>';
+                    echo '<i class="far fa-clock mr-1"></i>' . $this->activity->timeStart . ' - ' . $this->activity->timeEnd . '<br>';
                 } else {
-                    echo '<i class="far fa-calendar-alt mr-1"></i>' . $this->activity->dateStart . ' <i class="far fa-clock px-2"></i><span class="compacttext back">' . $this->activity->timeStart . '</span><br>';
-                    echo '<i class="far fa-calendar-alt mr-1"></i>' . $this->activity->dateEnd . ' <i class="far fa-clock px-2"></i><span class="compacttext back">' . $this->activity->timeEnd . '</span>';
+                    echo '<i class="far fa-calendar-alt mr-1"></i>' . $this->activity->dateStart . ' <i class="far fa-clock mr-1"></i>' . $this->activity->timeStart . '<br>';
+                    echo '<i class="far fa-calendar-alt mr-1"></i>' . $this->activity->dateEnd . ' <i class="far fa-clock mr-1"></i>' . $this->activity->timeEnd . '';
                 } ?>
                 </div>
             </div>
@@ -206,10 +206,10 @@ if (empty($vars)) {
                                         src="members/avatar/<?php echo $organizer->Username; ?>/50" width="50" height="50"></a></div>
                         <div>
                             <a href="members/<?php echo $organizer->Username; ?>"><?php echo $organizer->Username; ?></a>
-                            <br><a href="new/message/member-16526"><i class="fa fa-envelope mt-3" title="Write organiser"></i></a>
+                            <br><a href="new/message/<?php echo $organizer->Username; ?>"><i class="fa fa-envelope mt-3" title="Write organiser"></i></a>
                         </div>
                     </div>
-                <? } ?>
+                <?php } ?>
             </div>
     </div>
     <div id="activity-description" class="col-12 col-md-8 col-lg-9 mt-3 order-5 order-md-6">
@@ -223,15 +223,16 @@ if (empty($vars)) {
 
     <?php if ($this->member) { ?>
 
-        <div class="col-12 d-flex flex-row flex-wrap justify-content-start order-9">
-
+        <div class="col-12 order-9">
+<div class="row no-gutters">
 
         <?php
         foreach ($this->attendeesPager->getActiveSubset($this->activity->attendees) as $attendee) {
 
             ?>
-            <div class="col m-1 p-2
-<?
+            <div class="col-12 col-sm-6 col-md-4">
+                <div class="m-1 p-2
+<?php
             switch ($attendee->status) {
                 case 1:
                     echo " attendyes";
@@ -250,7 +251,7 @@ if (empty($vars)) {
                                     src="members/avatar/<?php echo $attendee->Username; ?>/50" width="50" height="50"></a></div>
                     <div><a href="members/<?php echo $attendee->Username; ?>"><?php echo $attendee->Username; ?></a><br>
                         <small>
-                            <?
+                            <?php
                             switch ($attendee->status) {
                                 case 1:
                                     echo $words->get('ActivityYesIAttend');
@@ -266,21 +267,22 @@ if (empty($vars)) {
                         </small>
                     </div>
                 </div>
-                <? if ($attendee->comment) { ?>
+                <?php if ($attendee->comment) { ?>
                     <div class="small gray"><i><?php echo htmlspecialchars($attendee->comment); ?></i></div>
-                <? } ?>
+                <?php } ?>
+            </div>
             </div>
             <?php
         }
         ?>
         </div>
         <div class="col-12 order-10">
-            <?
+            <?php
         echo $this->attendeesPager->render();
         ?>
         </div>
-
-            <?
+        </div>
+            <?php
     } else {
         echo '<div class="col-12 order-9"><h3>' . $words->get('ActivityAttendees') . '</h3>';
         echo '<p>' . $words->getBuffered('ActivitiesLogInWhoIsComing', '<a href="' . $login_url . '">', '</a>') . '</p></div>';

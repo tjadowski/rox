@@ -9,6 +9,7 @@ use App\Utilities\ManagerTrait;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityRepository;
+use Pagerfanta\Pagerfanta;
 
 class FaqModel
 {
@@ -20,7 +21,7 @@ class FaqModel
      * @param int $page
      * @param int $limit
      *
-     * @return \Pagerfanta\Pagerfanta
+     * @return Pagerfanta
      */
     public function getFilteredFaqs($page, $limit)
     {
@@ -32,7 +33,6 @@ class FaqModel
 
     public function getFaqsForCategory(FaqCategory $faqCategory)
     {
-        $results = [];
         try {
             $connection = $this->getManager()->getConnection();
             $stmt = $connection->prepare(
@@ -55,6 +55,7 @@ ORDER BY
             $stmt->execute();
             $results = $stmt->fetchAll();
         } catch (DBALException $e) {
+            $results = [];
         }
 
         return $results;

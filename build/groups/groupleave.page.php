@@ -36,23 +36,15 @@ class GroupLeavePage extends GroupsBasePage
     protected function column_col3()
     {
         $words = $this->getWords();
-        $a = new APP_User();
-        if (!$a->isBWLoggedIn('NeedMore,Pending'))
-        {
-            $widg = $this->createWidget('LoginFormWidget');
-            $widg->render();
-        }
-        else
-        {
         ?>
-
+<div class="row">
             <div class="col-12">
                 <h3><?= $words->get('GroupsLeaveNamedGroup', htmlspecialchars($this->getGroupTitle(), ENT_QUOTES)); ?></h3>
                 <a class="btn btn-primary" role="button" href="group/<?=$this->group->id ?>/leave/true"><?= $words->get('GroupsYesGetMeOut');?></a>
                 <a class="btn btn-light" href="group/<?=$this->group->id ?>"><?= $words->get('GroupsNoIStay');?></a>
             </div>
+</div>
         <?php
-        }
     }
 
     protected function getSubmenuActiveItem() {

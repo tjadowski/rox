@@ -1,17 +1,16 @@
 {% block ckeditor_widget %}
     <textarea {{ block('widget_attributes') }}>{{ value }}</textarea>
-
-    {% if not async %}
-        {{ block( '_ckeditor_javascript' ) }}
-        {{ block( '_ckeditor_stylesheet' ) }}
-    {% endif %}
+    {{ block( '_ckeditor_javascript' ) }}
+    {{ block( '_ckeditor_stylesheet' ) }}
 {% endblock %}
 
 {% block _ckeditor_javascript %}
-    <script src="{{ asset('script/ckeditor.js') }}"></script>
+    <script src="{{ asset('build/cktranslations/' ~ app.request.locale ~ '.js') }}"></script>
+    {{ encore_entry_script_tags('roxeditor') }}
 {% endblock %}
 
 {% block _ckeditor_stylesheet %}
+    {{ encore_entry_link_tags('roxeditor') }}
     <style>
         .ck-editor__editable {
             min-height: 10em;

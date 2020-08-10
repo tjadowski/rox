@@ -8,22 +8,30 @@
 namespace App\Entity;
 
 use App\Doctrine\GroupMembershipStatusType;
+use Carbon\Carbon;
 use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
+use Doctrine\Common\Persistence\ObjectManagerAware;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Persistence\Mapping\ClassMetadata;
+use Doctrine\Persistence\ObjectManager;
 
 /**
  * Group Membership.
  *
- * @ORM\Table(name="membersgroups", uniqueConstraints={@ORM\UniqueConstraint(name="UniqueIdMemberIdGroup", columns={"IdMember", "IdGroup"})}, indexes={@ORM\Index(name="IdGroup", columns={"IdGroup"}), @ORM\Index(name="IdMember", columns={"IdMember"})})
- * @ORM\Entity
+ * @ORM\Table(name="membersgroups",
+ *     uniqueConstraints={@ORM\UniqueConstraint(name="UniqueIdMemberIdGroup", columns={"IdMember", "IdGroup"})},
+ *     indexes={@ORM\Index(name="IdGroup", columns={"IdGroup"}),
+ *         @ORM\Index(name="IdMember", columns={"IdMember"})
+ *     }
+ * )
+ * @ORM\Entity(repositoryClass="App\Repository\GroupMembershipRepository")
  * @ORM\HasLifecycleCallbacks
  *
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
  */
-class GroupMembership
+class GroupMembership implements ObjectManagerAware
 {
     /**
      * @var DateTime
@@ -44,16 +52,10 @@ class GroupMembership
      *
      * @ORM\Column(name="comment", type="integer", nullable=false)
      */
-    private $comment = 0;
+    private $comment;
 
     /**
-     * @var MemberTranslation
-     *
-     * @ORM\ManyToMany(targetEntity="MemberTranslation", fetch="LAZY")
-     * @ORM\JoinTable(name="group_membership_trads",
-     *      joinColumns={@ORM\JoinColumn(name="group_membership_id", referencedColumnName="id")},
-     *      inverseJoinColumns={@ORM\JoinColumn(name="members_trad_id", referencedColumnName="id", unique=true)}
-     *      )
+     * @var MemberTranslation[]
      */
     private $comments;
 
@@ -85,7 +87,7 @@ class GroupMembership
      *
      * @ORM\Column(name="IacceptMassMailFromThisGroup", type="string", nullable=false)
      */
-    private $iacceptmassmailfromthisgroup = 'no';
+    private $mailNotifications = 'no';
 
     /**
      * @var string
@@ -109,6 +111,11 @@ class GroupMembership
      * @ORM\GeneratedValue(strategy="IDENTITY")
      */
     private $id;
+
+    /**
+     * @var ObjectManager
+     */
+    private $objectManager;
 
     public function __construct()
     {
@@ -156,11 +163,11 @@ class GroupMembership
     /**
      * Get created.
      *
-     * @return DateTime
+     * @return Carbon
      */
     public function getCreated()
     {
-        return $this->created;
+        return Carbon::instance($this->created);
     }
 
     /**
@@ -236,27 +243,27 @@ class GroupMembership
     }
 
     /**
-     * Set iacceptmassmailfromthisgroup.
+     * Set accept mail notifications.
      *
-     * @param string $iacceptmassmailfromthisgroup
+     * @param string $mailNotifications
      *
      * @return GroupMembership
      */
-    public function setIacceptmassmailfromthisgroup($iacceptmassmailfromthisgroup)
+    public function setAcceptMailNotifications($mailNotifications)
     {
-        $this->iacceptmassmailfromthisgroup = $iacceptmassmailfromthisgroup;
+        $this->mailNotifications = $mailNotifications;
 
         return $this;
     }
 
     /**
-     * Get iacceptmassmailfromthisgroup.
+     * Get accept mail notifications.
      *
      * @return string
      */
-    public function getIacceptmassmailfromthisgroup()
+    public function getAcceptMailNotifications()
     {
-        return $this->iacceptmassmailfromthisgroup;
+        return $this->mailNotifications;
     }
 
     /**
@@ -310,8 +317,6 @@ class GroupMembership
     /**
      * Add a comment for the membership.
      *
-     * @param MemberTranslation $comment
-     *
      * @return GroupMembership
      */
     public function addComment(MemberTranslation $comment)
@@ -326,8 +331,6 @@ class GroupMembership
 
     /**
      * Remove a comment from the membership.
-     *
-     * @param MemberTranslation $comment
      *
      * @return GroupMembership
      */
@@ -351,6 +354,17 @@ class GroupMembership
     }
 
     /**
+     * Triggered after load from database.
+     *
+     * @ORM\PostLoad
+     */
+    public function onPostLoad()
+    {
+        $memberTranslationRepository = $this->objectManager->getRepository(MemberTranslation::class);
+        $this->comments = $memberTranslationRepository->findBy(['translation' => $this->comment]);
+    }
+
+    /**
      * Triggered on insert.
      *
      * @ORM\PrePersist
@@ -358,6 +372,7 @@ class GroupMembership
     public function onPrePersist()
     {
         $this->created = new DateTime('now');
+        $this->updated = $this->created;
     }
 
     /**
@@ -371,11 +386,21 @@ class GroupMembership
     }
 
     /**
-     * @return Collection|MemberTranslation[]
+     * @return MemberTranslation[]
      */
-    public function getComments(): Collection
+    public function getComments(): array
     {
         return $this->comments;
+    }
+
+    public function getComment(): ?int
+    {
+        return $this->comment;
+    }
+
+    public function injectObjectManager(ObjectManager $objectManager, ClassMetadata $classMetadata)
+    {
+        $this->objectManager = $objectManager;
     }
 
     /**

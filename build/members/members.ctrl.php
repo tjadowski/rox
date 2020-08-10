@@ -1,6 +1,7 @@
 <?php
 
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 
 class MembersController extends RoxControllerBase
 {
@@ -33,88 +34,6 @@ class MembersController extends RoxControllerBase
 
     protected function index_loggedOut($args)
     {
-        $request = $args->request;
-
-        switch (isset($request[0]) ? $request[0] : false)
-        {
-            case 'updatemandatory':
-            case 'mypreferences':
-            case 'editmyprofile':
-            case 'myvisitors':
-            case 'self':
-            case 'myself':
-            case 'my':
-            case 'deleteprofile':
-                // you are not supposed to open these pages when not logged in!
-                $page = new MembersMustloginPage;
-                break;
-            case 'members':
-            case 'people':
-            default:
-                if (!isset($request[1]) || empty($request[1]))
-                {
-                    // no member specified
-                    $this->redirect("places");
-                }
-                else if ($request[1] == 'avatar')
-                {
-                    if (!isset($request[2]) || !$member = $this->getMember($request[2]))
-                    {
-                        PPHP::PExit();
-                    }
-                    PRequest::ignoreCurrentRequest();
-                    $this->model->showAvatar($member->id);
-                    break;
-                }
-                else if (!($member = $this->getMember($request[1])) || !$member->isBrowsable())
-                {
-                    // did not find such a member
-                    $page = new MembersMembernotfoundPage;
-                }
-                else if (!$member->publicProfile)
-                {
-                    // this profile is not public
-                    $page = new MembersMustloginPage;
-                }
-                else if ($member->status == 'ChoiceInactive' ) {
-                    $page = new InactiveProfilePage();
-                } else {
-                    // found a member with given id or username. juhu
-                    switch (isset($request[2]) ? $request[2] : false)
-                    {
-                        case 'comments':
-                        case 'relations':
-                            // not logged in users don't get to see comments page
-                            $page = new MembersMustLoginPage;
-                            break;
-                        case 'groups':
-                            $my_groups = $member->getGroups();
-                            $params = new StdClass;
-                            $params->strategy = new HalfPagePager('left');
-                            $params->items = $my_groups;
-                            $params->items_per_page = 10;
-                            $pager = new PagerWidget($params);
-                            $page = new MemberGroupsPage();
-                            $page->my_groups = $my_groups;
-                            $page->pager = $pager;
-                            break;
-                        case 'profile':
-                        case '':
-                        case false:
-                            $page = new ProfilePage();
-                        $page->enableLightBox();
-                            break;
-                        default:
-                            $page = new ProfilePage();
-                            $page->enableLightBox();
-                            $this->model->set_profile_language($request[2]);
-                            break;
-                    }
-                    $page->member = $member;
-                }
-        }
-        $page->model = $this->model;
-        return $page;
     }
 
     protected function index_loggedIn($args, $member_self)
@@ -137,7 +56,7 @@ class MembersController extends RoxControllerBase
                 $geo = new Geo($member_self->IdCity);
                 $vars = [];
                 if ($geo) {
-                    $vars['location'] = $geo->getFullName($this->_session->get('lang'));
+                    $vars['location'] = $geo->getFullName($this->session->get('lang'));
                 } else {
                     $vars['location'] = '';
                 }
@@ -159,6 +78,12 @@ class MembersController extends RoxControllerBase
                     $this->model->set_profile_language($request[1]);
                     if (isset($request[2]) && $request[2] == 'delete') {
                         $page = new DeleteTranslationPage();
+                    }
+                    if (isset($request[2]) && $request[2] == 'add') {
+                        $page->session->getFlashBag()->add('notice',  $this->getWords()->getSilent('profile.language.added'));
+                        $url = 'editmyprofile/' . $request[1];
+                        $this->redirect($url);
+                        PPHP::PExit();
                     }
                 }
                 if (in_array('finish',$request))
@@ -333,8 +258,8 @@ class MembersController extends RoxControllerBase
                                             $redirect = 'editmyprofile';
                                             break;
                                         default:
-                                            if ($this->_session->has( 'Username' )) {
-                                                $redirect = 'members/' . $this->_session->get('Username') . '/relations/';
+                                            if ($this->session->has( 'Username' )) {
+                                                $redirect = 'members/' . $this->session->get('Username') . '/relations/';
                                             } else {
                                                 $redirect = '';
                                             }
@@ -364,7 +289,7 @@ class MembersController extends RoxControllerBase
                             $params = new stdClass();
                             $params->strategy = new HalfPagePager('left');
                             $params->items = $my_groups;
-                            $params->items_per_page = 10;
+                            $params->items_per_page = 30;
                             $pager = new PagerWidget($params);
                             $page = new MemberGroupsPage();
                             $page->my_groups = $my_groups;
@@ -451,8 +376,8 @@ class MembersController extends RoxControllerBase
 
     protected function redirect_myprofile()
     {
-        if ($this->_session->has( 'Username' )) {
-            $username = $this->_session->get('Username');
+        if ($this->session->has( 'Username' )) {
+            $username = $this->session->get('Username');
         } else {
             $username = 'henri';
         }
@@ -512,14 +437,23 @@ class MembersController extends RoxControllerBase
             return false;
         }
 
-        if( !($User = APP_User::login()))
+        if( !($User = $this->model->getLoggedInMember()))
             return false;
 
         $this->model->editPreferences($vars);
 
-        if (isset($vars['PreferenceLanguage']) && $this->_session->get('IdLanguage') != $vars['PreferenceLanguage'])
+        $redirect = null;
+        if (isset($vars['PreferenceLanguage']) && $this->session->get('IdLanguage') != $vars['PreferenceLanguage'])
         {
-            $this->model->setSessionLanguage($vars['PreferenceLanguage']);
+            $lang = $this->model->getLanguage($vars['PreferenceLanguage']);
+            if ($lang) {
+                $shortCode = $lang->ShortCode;
+                // hack to redirect to new language
+                $redirect = 'rox/in/'. $shortCode;
+                if ($redirect) {
+                    $this->setFlashNotice($this->getWords()->get('PreferredLanguageSetFlashNotice'));
+                }
+            }
         }
 
         // set profile as public
@@ -533,8 +467,11 @@ class MembersController extends RoxControllerBase
                 $mem_redirect->problems = array(0 => 'ChangePasswordNotUpdated');
             }
             $this->setFlashNotice($this->getWords()->get('PasswordSetFlashNotice'));
-        }        
- 
+        }
+        if (null !== $redirect) {
+            return $redirect;
+        }
+
         return false;
     }
 
@@ -675,7 +612,7 @@ class MembersController extends RoxControllerBase
             $vars = $args->post;
             $request = $args->request;
 
-            if (isset($vars['IdOwner']) && $vars['IdOwner'] == $this->_session->get('IdMember') && isset($vars['IdRelation'])) {
+            if (isset($vars['IdOwner']) && $vars['IdOwner'] == $this->session->get('IdMember') && isset($vars['IdRelation'])) {
                 if (isset($vars['action'])) {
                     $member = $this->getMember($vars['IdRelation']);
                     if (isset($vars['Type'])) $vars['stype'] = $vars['Type'];
@@ -745,7 +682,7 @@ class MembersController extends RoxControllerBase
         }
         $member->removeProfile();
         $this->model->sendRetiringFeedback($feedback);
-        $member->logOut();
+
         return 'logout';
     }
 
@@ -782,8 +719,8 @@ class MembersController extends RoxControllerBase
         // Update database
         $member->inactivateProfile();
         // Update session
-        $this->_session->set( "Status", 'ChoiceInactive'); 
-        $this->_session->set( "MemberStatus",  'ChoiceInactive');
+        $this->session->set( "Status", 'ChoiceInactive');
+        $this->session->set( "MemberStatus",  'ChoiceInactive');
         $this->setFlashNotice($this->model->getWords()->get('ProfileSetInactiveSuccess'));
         return 'editmyprofile';
     }
@@ -825,8 +762,8 @@ class MembersController extends RoxControllerBase
         // Update database
         $member->activateProfile();
         // Update session
-        $this->_session->set("Status", 'Active');
-        $this->_session->set( "MemberStatus", 'Active');
+        $this->session->set("Status", 'Active');
+        $this->session->set( "MemberStatus", 'Active');
         $this->setFlashNotice($this->model->getWords()->get('ProfileSetActiveSuccess'));
         return 'editmyprofile';
     }
@@ -1080,7 +1017,7 @@ class MembersController extends RoxControllerBase
             $this->model->removeMembers();
         }
         catch(Exception $e) {
-            ExceptionLogger::logException($this->_session, $e);
+            ExceptionLogger::logException($e);
             header("Location: " . PVars::getObj('env')->baseuri);
             exit(0);
         }

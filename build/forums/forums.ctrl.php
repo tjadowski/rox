@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ALL */
+
 /**
 * forums controller
 *
@@ -68,12 +69,12 @@ class ForumsController extends PAppController
 
         $page = $view->page = new RoxGenericPage();
 
-        $page->setEngine($this->engine);
+        $page->setEnvironment($this->environment);
 
         $request = $this->request;
         if (isset($request[0]) && $request[0] != 'forums') {
             // if this is a ./groups url get the group number if any
-            if (($request[0] == "groups") && (isset($request[1]))) {
+            if (($request[0] == "group") && (isset($request[1]))) {
                 $IdGroup = intval($request[1]);
             }
             $new_request = array();
@@ -87,19 +88,13 @@ class ForumsController extends PAppController
         }
 
         // First check if the feature is closed
-        if (($this->_session->get("Param")->FeatureForumClosed!='No')and(!$this->BW_Right->HasRight("Admin"))) {
+        if (($this->session->get("Param")->FeatureForumClosed!='No')and(!$this->BW_Right->HasRight("Admin"))) {
             $this->_view->showFeatureIsClosed();
             PPHP::PExit();
         } // end of test "if feature is closed"
 
 
-        $a = new APP_User();
-        if ( $a->isBWLoggedIn()) {
-            $User = APP_User::login();
-        }
-        else {
-            $User = false;
-        }
+        $User = $this->_model->getLoggedInMember();
 
         $showSticky = true;
 
@@ -126,34 +121,7 @@ class ForumsController extends PAppController
         }
 
         ob_start();
-        if ($this->action == self::ACTION_VOTE_POST) {
-            if (!isset($request[2])) {
-                die("Need to have a IdPost") ;
-            }
-            $IdPost=$request[2] ;
-            if (!isset($request[3])) {
-                die("Need to have a vote value") ;
-            }
-            $Value=$request[3] ;
-            $this->_model->VoteForPost($IdPost,$Value);
-            $this->_model->setThreadId($this->_model->GetIdThread($IdPost));
-            $this->isTopLevel = false;
-            $this->_model->prepareTopic(true);
-            $this->_view->showTopic();
-        }
-        elseif ($this->action == self::ACTION_DELETEVOTE_POST) {
-            if (!isset($request[2])) {
-                 die("Need to have a IdPost") ;
-            }
-            $IdPost=$request[2] ;
-			$this->_model->DeleteVoteForPost($IdPost);
-
-            $this->_model->setThreadId($this->_model->GetIdThread($IdPost));
-            $this->isTopLevel = false;
-            $this->_model->prepareTopic(true);
-            $this->_view->showTopic();
-         }
-        elseif ($this->action == self::ACTION_MODERATOR_FULLEDITPOST) {
+        if ($this->action == self::ACTION_MODERATOR_FULLEDITPOST) {
             if (!isset($request[2])) {
                  die("Need to have a IdPost") ;
             }
@@ -251,11 +219,12 @@ class ForumsController extends PAppController
             }
             else {
                 if (!isset($IdGroup)) {
-                 $IdGroup=0 ;
+                 $IdGroup=null ;
             }
             }
             $this->_model->prepareForum();
             $callbackId = $this->createProcess();
+
             $this->_view->createTopic($callbackId,$IdGroup);
             PPostHandler::clearVars($callbackId);
         }
@@ -272,11 +241,11 @@ class ForumsController extends PAppController
 
 			if (isset($request[2])) {
 				if ($request[2]=='AllMyReport') {
-					$DataPost=$this->_model->prepareReportList($this->_session->get("IdMember"),""); // This retrieve all the reports for the current member
+					$DataPost=$this->_model->prepareReportList($this->session->get("IdMember"),""); // This retrieve all the reports for the current member
 					$this->_view->showReportList($callbackId,$DataPost);
 				}
 				elseif ($request[2]=='MyReportActive') {
-					$DataPost=$this->_model->prepareReportList($this->_session->get("IdMember"),"('Open','OnDiscussion')"); // This retrieve the Active current pending report for the current member
+					$DataPost=$this->_model->prepareReportList($this->session->get("IdMember"),"('Open','OnDiscussion')"); // This retrieve the Active current pending report for the current member
 					$this->_view->showReportList($callbackId,$DataPost);
 				}
 				elseif ($request[2]=='AllActiveReports') {
@@ -289,14 +258,17 @@ class ForumsController extends PAppController
 				}
 				else {
 					$IdPost=$request[2] ;
-					$IdWriter=$this->_session->get("IdMember") ;
+					$IdWriter=$this->session->get("IdMember") ;
 					if ((!empty($request[3])) and ($this->BW_Right->HasRight("ForumModerator"))) {
 						$IdWriter=$request[3] ;
 					}
 
 					$DataPost=$this->_model->prepareModeratorEditPost($IdPost, $this->BW_Right->HasRight('ForumModerator')); // We will use the same data as the one used for Moderator edit
 
-                    if ($DataPost->Error == 'NoGroupMember') {
+                    if ($DataPost->Error == 'NoGroupMember' || $DataPost->Error == 'NoModerator') {
+                        echo "<div class='alert alert-danger'>Access Denied!</div>";
+                        echo "<p>Sorry, you can't access this post</p>";
+                        echo "<p><a href='/'>Go back to homepage.</a></p>";
                         // if someone who isn't a member of the associated group
                         // tries to access this just pull the brakes
                         PPHP::PExit();
@@ -306,8 +278,7 @@ class ForumsController extends PAppController
 				}
 				PPostHandler::clearVars($callbackId);
 			}
-		}
-        else if ($this->action == self::ACTION_REPLY) {
+		} elseif ($this->action == self::ACTION_REPLY) {
             if ($this->BW_Flag->hasFlag("NotAllowedToPostInForum")) { // Test if teh user has right for this, if not rough exit
                 MOD_log::get()->write("Forums.ctrl : Forbid to do action [".$this->action."] because of Flag "."NotAllowedToPostInForum","FlagEvent") ;
                 $words = new MOD_words();
@@ -322,26 +293,7 @@ class ForumsController extends PAppController
             $callbackId = $this->replyProcess();
             $this->_view->replyTopic($callbackId);
             PPostHandler::clearVars($callbackId);
-        }
-        else if ($this->action == self::ACTION_SUGGEST) {
-            // ignore current request, so we can use the last request
-            PRequest::ignoreCurrentRequest();
-            if (!isset($request[2])) {
-                PPHP::PExit();
-            }
-            $new_tags = $this->_model->suggestTags($request[2]);
-            echo $this->_view->generateClickableTagSuggestions($new_tags);
-            PPHP::PExit();
-        }
-        else if ($this->action == self::ACTION_LOCATIONDROPDOWNS) {
-            // ignore current request, so we can use the last request
-            PRequest::ignoreCurrentRequest();
-            if (!isset($request[2])) {
-                PPHP::PExit();
-            }
-            echo $this->_view->getLocationDropdowns();
-            PPHP::PExit();
-        } else if ($this->action == self::ACTION_DELETE) {
+        } elseif ($this->action == self::ACTION_DELETE) {
             if ($this->BW_Flag->hasFlag("NotAllowedToPostInForum")) { // Test if the user has right for this, if not rough exit
                 MOD_log::get()->write("Forums.ctrl : Forbid to do action [".$this->action."] because of Flag "."NotAllowedToPostInForum","FlagEvent") ;
                 $words = new MOD_words();
@@ -351,7 +303,7 @@ class ForumsController extends PAppController
                 PRequest::home();
             }
             $this->delProcess();
-        } else if ($this->action == self::ACTION_EDIT) {
+        } elseif ($this->action == self::ACTION_EDIT) {
             if ($this->BW_Flag->hasFlag("NotAllowedToPostInForum")) { // Test if the user has right for this, if not rough exit
                 MOD_log::get()->write("Forums.ctrl : Forbid to do action [".$this->action."] because of Flag "."NotAllowedToPostInForum","FlagEvent") ;
                 $words = new MOD_words();
@@ -478,6 +430,8 @@ class ForumsController extends PAppController
                 default :
                     $this->searchSubscriptions();
             }
+        } else if ($this->action == self::ACTION_REVERSE) {
+            $this->redirectReverse();
         } else {
             if (PVars::get()->debug) {
                 throw new PException('unexpected forum action!');
@@ -516,14 +470,25 @@ class ForumsController extends PAppController
         exit;
     }
 
+    private function redirectReverse() {
+        if (!isset($_SERVER['HTTP_REFERER'])) {
+            $redirect = PVars::getObj('env')->baseuri . 'forums/';
+        } else {
+            $referrer = $_SERVER['HTTP_REFERER'];
+            $referrer = str_replace('/reverse', '', $referrer);
+        }
+        header('Location: ' . $referrer);
+        exit;
+    }
+
     /**
      * Set flash message
      *
      * @param string $message Message text for flash
      * @param string $type Type of flash, i.e. "error" or "notice"
      */
-    private function setFlash($message) {
-        $this->_session->set( 'flash_notice', $message );
+    private function setFlash($message, $type = 'flash_notice') {
+        $this->session->set( $type, $message );
     }
 
 
@@ -603,7 +568,7 @@ class ForumsController extends PAppController
         // Data will be displayed only if the current user is Logged
         $profileVisitor = $this->_model->getLoggedInMember();
         if ($profileVisitor) {
-            $userId = APP_User::memberId($user);
+            $userId = $this->session->get('IdMember');
             $membersForumPostsPagePublic = $this->_model->isMembersForumPostsPagePublic($userId);
             if ($membersForumPostsPagePublic || ($profileVisitor->getPKValue() == $userId) || $this->BW_Right->HasRight("Admin") || $this->BW_Right->HasRight("ForumModerator") || $this->BW_Right->HasRight("SafetyTeam") ) {
                 $posts = $this->_model->searchUserposts($user);
@@ -812,13 +777,12 @@ class ForumsController extends PAppController
     const ACTION_TRANSLATE = 14;
     const ACTION_VIEW_CATEGORY = 15;
     const ACTION_VIEW_LASTPOSTS = 16;
-    const ACTION_VOTE_POST = 17;
-	const ACTION_DELETEVOTE_POST = 18 ;
 	const ACTION_REPORT_TO_MOD = 19 ;
     const ACTION_VIEW_LANDING = 20;
     const ACTION_VIEW_FORUM = 21;
     const ACTION_VIEW_GROUPS = 22;
     const ACTION_NOT_LOGGED_IN = 24;
+    const ACTION_REVERSE = 25;
 
 
     /**
@@ -835,7 +799,7 @@ class ForumsController extends PAppController
           $this->action = self::ACTION_VIEW;
       }
 
-      if (isset($request[0]) && $request[0] == 'groups') {
+      if (isset($request[0]) && (($request[0] == 'groups') || ($request[0] == 'group'))) {
             if (isset($request[1])) {
                 if ($request[1] == 'forums') {
                     $this->_model->setTopMode(Forums::CV_TOPMODE_GROUPS);
@@ -850,8 +814,8 @@ class ForumsController extends PAppController
                 }
             }
         }
-        $a = new APP_User();
-        if (!$a->isBWLoggedIn()) {
+        $a = $this->_model->getLoggedInMember();
+        if (!$a) {
             $this->action = self::ACTION_NOT_LOGGED_IN;
         } else if (!isset($request[1])) {
             $this->_model->setTopMode(Forums::CV_TOPMODE_LANDING);
@@ -868,10 +832,6 @@ class ForumsController extends PAppController
             $this->action = self::ACTION_SEARCH_USERPOSTS;
         } else if (isset($request[1]) && $request[1] == 'modfulleditpost') {
             $this->action = self::ACTION_MODERATOR_FULLEDITPOST;
-        } else if (isset($request[1]) && $request[1] == 'votepost') {
-            $this->action = self::ACTION_VOTE_POST;
-        } else if (isset($request[1]) && $request[1] == 'deltevotepost') {
-            $this->action = self::ACTION_DELETEVOTE_POST;
         } else if (isset($request[1]) && $request[1] == 'modedittag') {
             $this->action = self::ACTION_MODERATOR_EDITTAG;
         } else if (isset($request[1]) && $request[1] == 'subscriptions') {
@@ -909,14 +869,11 @@ class ForumsController extends PAppController
                     $this->action = self::ACTION_REPORT_TO_MOD;
                 } else if ($r == 'modefullditpost') {
                     $this->action = self::ACTION_MODERATOR_FULLEDITPOST;
-                } else if ($r == 'votepost') {
-                    $this->action = self::ACTION_VOTE_POST;
-                } else if ($r == 'deletevotepost') {
-                    $this->action = self::ACTION_DELETEVOTE_POST;
                 } else if ($r == 'modedittag') {
                     $this->action = self::ACTION_MODERATOR_EDITTAG;
                 } else if ($r == 'reverse') {  // This mean user has click on the reverse order box
-                    $this->_model->switchForumOrderList() ;
+                    $this->_model->switchForumOrderList();
+                    $this->action = self::ACTION_REVERSE;
                 } else if ($r == 'delete') {
                     $this->action = self::ACTION_DELETE;
                 } else if (preg_match_all('/page([0-9]+)/i', $r, $regs)) {
@@ -949,9 +906,6 @@ class ForumsController extends PAppController
                         $this->isTopLevel = false;
                     } else if ($char == 'u') { // Group ID (This is a dedicated group)
                         $this->_model->setGroupId((int) substr($r, 1, $dashpos));
-                        $this->isTopLevel = false;
-                    } else if ($char == 'k' && $r != "kickmember") { // Continent-ID
-                        $this->_model->setContinent(substr($r, 1, $dashpos));
                         $this->isTopLevel = false;
                     } else if ($char == 'm' && $r != "mygroupsonly") { // Message-ID (Single Post)
                         $this->_model->setMessageId(substr($r, 1, $dashpos));

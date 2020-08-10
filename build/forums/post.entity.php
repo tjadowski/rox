@@ -28,7 +28,7 @@ class Post extends RoxEntityBase
      */
     public function findByPostId($id)
     {
-        return $this->findByWhere("postid = '{$this->dao->escape($id)}'");
+        return $this->findByWhere("id = '{$this->dao->escape($id)}'");
     }
 
     /**
@@ -45,68 +45,5 @@ class Post extends RoxEntityBase
             return 0;
         }
         return $this->countWhere("IdWriter = '{$member->getPKValue()}'");
-    }
-
-    /**
-     * returns array of post votes that member has made
-     *
-     * @access public
-     * @return array
-     */
-    public function getVotes()
-    {
-        if (!$this->isLoaded())
-        {
-            return array();
-        }
-        return $this->createEntity('PostVote')->getVotesForPost($this);
-    }
-
-    /**
-     * returns array of post votes that member has made
-     *
-     * @access public
-     * @return array
-     */
-    public function getVoteResult()
-    {
-        if (!$this->isLoaded())
-        {
-            return array();
-        }
-        return $this->createEntity('PostVote')->getResultForPost($this);
-    }
-
-    /**
-     * returns the count of positive votes for the post
-     *
-     * @access public
-     * @result int
-     */
-    public function getPositiveVoteCount()
-    {
-        return getPositiveForPost($this);
-    }
-
-    /**
-     * returns the count of negative votes for the post
-     *
-     * @access public
-     * @result int
-     */
-    public function getNegativeVoteCount()
-    {
-        return getNegativeForPost($this);
-    }
-
-    /**
-     * returns the count of neutral votes for the post
-     *
-     * @access public
-     * @result int
-     */
-    public function getNeutralVoteCount()
-    {
-        return getNeutralForPost($this);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Routing;
 
+use RuntimeException;
 use Symfony\Component\Config\Loader\Loader;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -17,40 +18,44 @@ class LegacyLoader extends Loader
     /** @var RouteCollection */
     private $routes;
 
-    /** @var boolean */
+    /** @var bool */
     private $loaded = false;
 
     /**
-     * @param mixed $resource
-     * @param null  $type
+     * @param mixed  $resource
+     * @param string $type
      *
      * @throws \RuntimeException
      *
      * @return RouteCollection
      */
-    public function load($resource, $type = null)
+    public function load($resource, string $type = null)
     {
         if (true === $this->loaded) {
-            throw new \RuntimeException('Do not add the "legacy" loader twice');
+            throw new RuntimeException('Do not add the "legacy" loader twice');
         }
 
         $this->routes = new RouteCollection();
 
         // Handle current directory (difference between cache clear and web access)
-        $projectDir = realpath(__DIR__.'/../..');
+        $projectDir = realpath(__DIR__ . '/../..');
 
         // Include legacy routes to ensure firewall kicks in
-        require_once $projectDir.'/routes.php';
+        require_once $projectDir . '/routes.php';
 
         // Forum urls
 //        $this->addRouteDirectly('forums', '/forums/page{pageGroups}/page{pageForums}');
         $this->addRouteDirectly('forums', '/forums');
         $this->addRouteDirectly('forums_pages', '/forums/page{groupsPage}/page{bwforumsPage}/');
         $this->addRouteDirectly('forums_new', '/forums/new');
+        $this->addRouteDirectly('forums_reverse', '/forums/reverse');
         $this->addRouteDirectly('forums_search', '/forums/search/{keyword}');
+        $this->addRouteDirectly('forums_search_pages', '/forums/search/{keyword}/{page}');
         $this->addRouteDirectly('bwforum', 'forums/bwforum');
+        $this->addRouteDirectly('bwforum_pages', 'forums/bwforum/page{bwforumsPage}/');
         $this->addRouteDirectly('forum_permalink', '/forums/s{threadId}/');
         $this->addRouteDirectly('forum_thread', '/forums/s{threadId}');
+        $this->addRouteDirectly('forum_thread_pages', '/forums/s{threadId}/page{pageId}');
         $this->addRouteDirectly('forum_admin', '/forums/modfulleditpost/{postId}');
         $this->addRouteDirectly('forum_admin_edit', '/forums/modeditpost/{postId}');
         $this->addRouteDirectly('forum_admin_edit_trailing', '/forums/modeditpost/{postId}/');
@@ -86,7 +91,7 @@ class LegacyLoader extends Loader
             '/forums/subscriptions/enable/thread/{threadId}/{subscriptionId}'
         );
         $this->addRouteDirectly('group_notifications_enable', '/forums/subscriptions/enable/group/{groupId}');
-        $this->addRouteDirectly('group_notifications_enable', '/forums/subscriptions/disable/group/{groupId}');
+        $this->addRouteDirectly('group_notifications_disable', '/forums/subscriptions/disable/group/{groupId}');
         $this->addRouteDirectly('group_subscribe', '/forums/subscriptions/subscribe/group/{groupId}');
         $this->addRouteDirectly('group_unsubscribe', '/forums/subscriptions/unsubscribe/group/{groupId}');
         $this->addRouteDirectly('group_new_topic', '/groups/{groupId}/forum/new');
@@ -94,9 +99,7 @@ class LegacyLoader extends Loader
         $this->addRouteDirectly('group_add_related_group', '/groups/{groupId}/selectrelatedgroup');
         $this->addRouteDirectly('group_invite_member', '/groups/{groupId}/invitemembers/search');
         $this->addRouteDirectly('community', '/community');
-        $this->addRouteDirectly('faq', '/faq');
         $this->addRouteDirectly('about_faq', '/about/faq');
-        $this->addRouteDirectly('faq_category', '/faq/{category}');
         $this->addRouteDirectly('about_faq_category', '/about/faq/{category}');
         $this->addRouteDirectly('about', '/about');
         $this->addRouteDirectly('about_people', '/about/thepeople');
@@ -119,6 +122,9 @@ class LegacyLoader extends Loader
         $this->addRouteDirectly('editmyprofile_locale', '/editmyprofile/{locale}');
         $this->addRouteDirectly('donate', '/donate');
         $this->addRouteDirectly('donate_list', '/donate/list');
+        $this->addRouteDirectly('donate_cancel', '/donate/cancel');
+        $this->addRouteDirectly('donate_done', '/donate/done');
+        $this->addRouteDirectly('donate_notify', '/donate/notify');
         $this->addRouteDirectly('gallery_show_user', '/gallery/show/user/{username}');
         $this->addRouteDirectly('gallery_show_user_images', '/gallery/show/user/{username}/pictures');
         $this->addRouteDirectly('gallery_show_user_images_pages', '/gallery/show/user/{username}/pictures/=page{pageNo}');
@@ -149,6 +155,8 @@ class LegacyLoader extends Loader
         $this->addRouteDirectly('setlocation', '/setlocation');
         $this->addRouteDirectly('editmyprofile_finish', '/editmyprofile/finish');
         $this->addRouteDirectly('editmyprofile_language_finish', '/editmyprofile/{language}/finish');
+        $this->addRouteDirectly('editmyprofile_add_language_finish', '/editmyprofile/{language}/add');
+        $this->addRouteDirectly('delete_profile_language', '/editmyprofile/{language}/delete');
         $this->addRouteDirectly('admin_editprofile_finish', '/members/{username}/adminedit/finish');
         $this->addRouteDirectly('myprofile_in_langauge', '/members/{username}/{language}');
         $this->addRouteDirectly('imprint', '/impressum');
@@ -167,24 +175,34 @@ class LegacyLoader extends Loader
         // Polls
         $this->addRouteDirectly('polls', '/polls');
         $this->addRouteDirectly('polls_create', '/polls/create');
-        $this->addRouteDirectly('polls_list_all', '/polls/listall');
-        $this->addRouteDirectly('polls_listClose', '/polls/listClose');
-        $this->addRouteDirectly('polls_listOpen', '/polls/listOpen');
+        $this->addRouteDirectly('polls_list_all', '/polls/list/all');
+        $this->addRouteDirectly('polls_list_closed', '/polls/list/closed');
+        $this->addRouteDirectly('polls_list_open', '/polls/list/open');
+        $this->addRouteDirectly('polls_list_new', '/polls/list/new');
+        $this->addRouteDirectly('polls_list_contributed', '/polls/list/contributed');
         $this->addRouteDirectly('polls_listProject', '/polls/listProject');
         $this->addRouteDirectly('polls_cancelvote', '/polls/cancelvote/{pollId}');
         $this->addRouteDirectly('polls_contribute', '/polls/contribute/{pollId}');
         $this->addRouteDirectly('polls_vote', '/polls/vote');
         $this->addRouteDirectly('polls_update', '/polls/update/{pollId}');
+        $this->addRouteDirectly('polls_update_status', '/polls/updatestatus');
         $this->addRouteDirectly('polls_doupdatepoll', '/polls/doupdatepoll');
         $this->addRouteDirectly('polls_addchoice', '/polls/addchoice');
         $this->addRouteDirectly('polls_updatechoice', '/polls/updatechoice');
         $this->addRouteDirectly('polls_createpoll', '/polls/createpoll');
-        $this->addRouteDirectly('polls_view_results', '/polls/seeresults/{pollId}');
+        $this->addRouteDirectly('polls_see_results', '/polls/seeresults/{pollId}');
+        $this->addRouteDirectly('polls_view_results', '/polls/results/{pollId}');
 
         return $this->routes;
     }
 
-    public function supports($resource, $type = null)
+    /**
+     * @param mixed  $resource
+     * @param string $type
+     *
+     * @return bool
+     */
+    public function supports($resource, string $type = null)
     {
         return 'legacy' === $type;
     }
@@ -193,7 +211,7 @@ class LegacyLoader extends Loader
     {
         $path = preg_replace('^:(.*?):^', '{\1}', $path);
         $this->routes->add($name, new Route($path, [
-            '_controller' => 'rox.legacy_controller::showAction',
+            '_controller' => 'rox.legacy_controller::showLegacyPage',
         ], [], [], '', [], ['get', 'post']));
     }
 
@@ -201,7 +219,7 @@ class LegacyLoader extends Loader
     {
         $path = preg_replace('^:(.*?):^', '{\1}', $path);
         $this->routes->add($name, new Route($path, [
-            '_controller' => 'rox.legacy_controller::showAction',
+            '_controller' => 'rox.legacy_controller::showLegacyPage',
         ], [], [], '', [], ['get', 'post']));
     }
 }

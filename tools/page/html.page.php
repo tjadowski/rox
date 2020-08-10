@@ -7,16 +7,24 @@ class PageWithHTML extends AbstractBasePage
     // Add or increment query string if a JS file changes to make sure browsers
     // reload the file (e.g. "?1" -> "?2")
     private $_early_scriptfiles = array(
-        'build/runtime.js',
         'build/bewelcome.js',
-        'build/offcanvas.js',
-        'build/updatecounters.js',
         '/script/main.js?9',
-//         '/script/common/common.js?1',
-        '/script/common/initialize.js?1',
     );
 
     private $_late_scriptfiles = array(
+        'build/offcanvas.js',
+        'build/updatecounters.js',
+        '/script/common/initialize.js?1',
+    );
+
+    private $_stylesheets = array(
+        'build/bewelcome.css',
+    );
+
+    private $_rendered_scripts = array(
+    );
+
+    private $_rendered_stylesheets = array(
     );
 
     public function render() {
@@ -50,7 +58,7 @@ class PageWithHTML extends AbstractBasePage
      */
     protected function getStylesheets()
     {
-        $stylesheets = array();
+        $stylesheets = $this->_stylesheets;
         foreach ($this->_widgets as $widget) {
             foreach ($widget->getStylesheets() as $stylesheet) {
                 $stylesheets[] = $stylesheet;
@@ -108,7 +116,7 @@ class PageWithHTML extends AbstractBasePage
      * @access protected
      * @return void
      */
-    protected function addEarlyLoadScriptFile($file)
+    public function addEarlyLoadScriptFile($file)
     {
         $this->_early_scriptfiles[] = $file;
     }
@@ -121,9 +129,14 @@ class PageWithHTML extends AbstractBasePage
      * @access protected
      * @return void
      */
-    protected function addLateLoadScriptFile($file)
+    public function addLateLoadScriptFile($file)
     {
         $this->_late_scriptfiles[] = $file;
+    }
+
+    public function addStylesheet($file)
+    {
+        $this->_stylesheets[] = $file;
     }
 
     protected function getPageTitle() {
@@ -186,27 +199,54 @@ class PageWithHTML extends AbstractBasePage
         </html><?php
     }
 
+    protected function printStylesheetTags($stylesheetUrl)
+    {
+        if (false === strpos($stylesheetUrl, 'build/'))
+        {
+            echo '<link rel="stylesheet" href="' . $stylesheetUrl . '">' . PHP_EOL;
+        }
+        else
+        {
+            $stylesheetFile = str_replace('build/', '', $stylesheetUrl);
+            $stylesheetFile = str_replace('.css', '', $stylesheetFile);
+            $stylesheetFiles = $this->entryPointLookup->getCssFiles($stylesheetFile);
+            foreach ($stylesheetFiles as $stylesheetFile) {
+                if (!isset($this->_rendered_stylesheets[$stylesheetFile])) {
+                    echo '<link rel="stylesheet" href="' . $stylesheetFile . '">' . PHP_EOL;
+                    $this->_rendered_stylesheets[$stylesheetFile] = $stylesheetFile;
+                }
+            }
+        }
+    }
+
+    protected function printScriptTags($scriptUrl)
+    {
+        if (false === strpos($scriptUrl, 'build/') || false !== strpos($scriptUrl, 'cktranslations/'))
+        {
+            echo '<script src="' .  ltrim($scriptUrl, '/') . '"></script>' . PHP_EOL;
+        }
+        else
+        {
+            $scriptFile = str_replace('build/', '', $scriptUrl);
+            $scriptFile = str_replace('.js', '', $scriptFile);
+            $scriptFiles = $this->entryPointLookup->getJavaScriptFiles($scriptFile);
+            foreach($scriptFiles as $scriptFile) {
+                if (!isset($this->_rendered_scripts[$scriptFile])) {
+                    echo '<script src="' . $scriptFile . '"></script>' . PHP_EOL;
+                    $this->_rendered_scripts[$scriptFile] = $scriptFile;
+                }
+            }
+        }
+    }
 
     protected function includeStylesheets()
     {
-        if (!$stylesheets = $this->getStylesheets()) {
-            // no stylesheets
-        } else foreach($stylesheets as $url) {
-            if (strpos($url, 'build/') === 0) {
-                echo '<link rel="stylesheet" href="' . $this->getUrl($url). '" type="text/css" />' . PHP_EOL;
-            } else {
-            ?><link rel="stylesheet" href="<?=$url ?>" type="text/css" />
-            <?php
-            }
+        if (!$stylesheetUrls = $this->getStylesheets()) {
+            return;
         }
-        if (!$stylesheet_patches = $this->getStylesheetPatches()) {
-            // no stylesheets
-        } else foreach($stylesheet_patches as $url) {
-            ?>
-    <!--[if lte IE 8]>
-                    <link rel="stylesheet" href="<?=$this->getUrl($url) ?>" type="text/css" />
-        <![endif]-->
-            <?php
+
+        foreach($stylesheetUrls as $stylesheetUrl) {
+            $this->printStylesheetTags($stylesheetUrl);
         }
     }
 
@@ -252,19 +292,12 @@ class PageWithHTML extends AbstractBasePage
 
     protected function includeScriptfiles()
     {
-        ?>
+        if (!$scriptUrls = $this->getScriptfiles()) {
+            return;
+        }
 
-        <?php
-        if (!$scriptfiles = $this->getScriptfiles()) {
-            // no additional Javascript files
-        } else foreach($scriptfiles as $url) {
-            if (strpos($url, 'build/') === 0) {
-                echo '<script type="text/javascript" src="' . $this->getUrl($url) . '"></script>' . PHP_EOL;
-            } else {
-                ?>
-                <script type="text/javascript" src="<?= ltrim($url, '/') ?>"></script>
-                <?php
-            }
+        foreach($scriptUrls as $scriptUrl) {
+            $this->printScriptTags($scriptUrl);
         }
     }
 
@@ -277,12 +310,12 @@ class PageWithHTML extends AbstractBasePage
      */
     protected function includeLateScriptfiles()
     {
-        if ($scriptfiles = $this->getLateLoadScriptfiles())
-        {
-            foreach($scriptfiles as $url)
-            {
-                echo '<script type="text/javascript" src="' . $this->getUrl($url) . '"></script>' . PHP_EOL;
-            }
+        if (!$scriptUrls = $this->getLateLoadScriptfiles()) {
+            return;
+        }
+
+        foreach($scriptUrls as $scriptUrl) {
+            $this->printScriptTags($scriptUrl);
         }
     }
 
@@ -343,7 +376,10 @@ class PageWithHTML extends AbstractBasePage
         }
         ?></div><?php
     }
-}
+    }
 
-
+    protected function getSubmenuItems()
+    {
+        return [];
+    }
 }

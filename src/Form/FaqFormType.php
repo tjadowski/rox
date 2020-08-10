@@ -13,9 +13,6 @@ use Symfony\Component\Form\FormEvents;
 class FaqFormType extends AbstractType
 {
     /**
-     * @param FormBuilderInterface $formBuilder
-     * @param array                $options
-     *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function buildForm(FormBuilderInterface $formBuilder, array $options)
@@ -31,7 +28,6 @@ class FaqFormType extends AbstractType
                 'label' => 'label.admin.faq.translation.id',
             ])
             ->add('question', CkEditorType::class, [
-                'async' => true,
                 'label' => 'label.admin.faq.question',
                 'attr' => [
                     'class' => 'editor',

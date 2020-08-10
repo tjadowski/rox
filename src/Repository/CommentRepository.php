@@ -4,8 +4,8 @@ namespace App\Repository;
 
 use App\Doctrine\CommentAdminActionType;
 use App\Entity\Member;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityRepository;
-use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\QueryBuilder;
 use Pagerfanta\Adapter\DoctrineORMAdapter;
 use Pagerfanta\Pagerfanta;
@@ -43,9 +43,8 @@ class CommentRepository extends EntityRepository
     /**
      * Returns a Pagerfanta object encapsulating the matching paginated activities.
      *
-     * @param Member $member
-     * @param int    $page
-     * @param int    $items
+     * @param int $page
+     * @param int $items
      *
      * @return Pagerfanta
      */
@@ -59,8 +58,6 @@ class CommentRepository extends EntityRepository
     }
 
     /**
-     * @param Member $member
-     *
      * @return QueryBuilder
      */
     public function queryAllForMember(Member $member)
@@ -75,9 +72,8 @@ class CommentRepository extends EntityRepository
     /**
      * Returns a Pagerfanta object encapsulating the matching paginated activities.
      *
-     * @param Member $member
-     * @param int    $page
-     * @param int    $items
+     * @param int $page
+     * @param int $items
      *
      * @return Pagerfanta
      */
@@ -91,8 +87,6 @@ class CommentRepository extends EntityRepository
     }
 
     /**
-     * @param Member $member
-     *
      * @return QueryBuilder
      */
     public function queryAllFromMember(Member $member)
@@ -120,6 +114,20 @@ class CommentRepository extends EntityRepository
         $paginator->setCurrentPage($page);
 
         return $paginator;
+    }
+
+    /**
+     * @param $quality
+     *
+     * @return QueryBuilder
+     */
+    public function queryAllByQuality($quality)
+    {
+        $qb = $this->queryAll()
+            ->where('c.quality = :quality')
+            ->setParameter('quality', $quality);
+
+        return $qb;
     }
 
     /**
@@ -155,7 +163,7 @@ class CommentRepository extends EntityRepository
     }
 
     /**
-     * @return mixed|null
+     * @return int
      */
     public function getReportedCommentsCount()
     {
@@ -165,12 +173,36 @@ class CommentRepository extends EntityRepository
             ->setParameter('status', CommentAdminActionType::ADMIN_CHECK)
             ->getQuery();
 
-        $results = null;
-        try {
-            $results = $q->getSingleScalarResult();
-        } catch (NonUniqueResultException $e) {
-        }
+        $results = (int) $q->getSingleScalarResult();
 
         return $results;
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getCommentsForMember(Member $member)
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.toMember = :member')
+            ->setParameter('member', $member)
+            ->orderBy('c.created', 'ASC')
+            ->getQuery()
+            ->getResult()
+            ;
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getCommentsFromMember(Member $member)
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.fromMember = :member')
+            ->setParameter('member', $member)
+            ->orderBy('c.created', 'ASC')
+            ->getQuery()
+            ->getResult()
+            ;
     }
 }

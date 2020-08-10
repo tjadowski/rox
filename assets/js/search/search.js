@@ -32,12 +32,18 @@ Map.prototype.showMap = function () {
             // Check if a rectangle is set if so use this for the bounds else fit the bounds to the markerClusterGroup
             var query = this.getQueryStrings($(".search_form").serialize());
 
-            if (query["search[distance]"] === -1) {
+            // Distinguish between /search/members and /search/map
+            if (query["map[distance]"] !== undefined) {
                 this.noRefresh = true;
-                this.map.fitBounds([[query["search[ne_latitude]"], query["search[ne_longitude]"]], [query["search[sw_latitude]"], query["search[sw_longitude]"]]]);
+                this.map.fitBounds(this.boundingBox(query["map[location_latitude]"], query["map[location_longitude]"], query["map[distance]"]));
             } else {
-                this.noRefresh = true;
-                this.map.fitBounds(this.boundingBox(query["search[location_latitude]"], query["search[location_longitude]"], query["search[distance]"]));
+                if (query["search[distance]"] === -1) {
+                    this.noRefresh = true;
+                    this.map.fitBounds([[query["search[ne_latitude]"], query["search[ne_longitude]"]], [query["search[sw_latitude]"], query["search[sw_longitude]"]]]);
+                } else {
+                    this.noRefresh = true;
+                    this.map.fitBounds(this.boundingBox(query["search[location_latitude]"], query["search[location_longitude]"], query["search[distance]"]));
+                }
             }
         }
         that = this;
@@ -149,17 +155,11 @@ Map.prototype.addMarkers = function (map) {
      */
 
     $.each(mapMembers, function (index, value) {
-        // TODO the icons might be easier to see on the map if they had a drop shadow.
-        // Add a class to the img tag and css eg. box-shadow: 10px 10px 5px #888888;
         var iconFile = 'undefined';
 
         switch (value.Accommodation) {
             case 'anytime':
                 iconFile = 'anytime';
-                break;
-
-            case 'dependonrequest':
-                iconFile = 'dependonrequest';
                 break;
 
             case 'neverask':
@@ -176,6 +176,7 @@ Map.prototype.addMarkers = function (map) {
             className: '',
             iconSize: new L.Point(17, 17)
         });
+        const latlng = new L.LatLng(value.latitude, value.longitude);
         var marker = new L.marker([value.latitude, value.longitude], {
             icon: icon,
             className: 'marker-cluster marker-cluster-unique'
@@ -212,18 +213,14 @@ $(function () {
     $(".img-check").click(function(){
         $(this).toggleClass("checked").toggleClass("not_checked");
     });
-    $(".advanced").click(function(){
-        $(this).toggleClass("btn-primary").toggleClass("btn-outline-primary");
-        if ($("#search_showadvanced").is(":checked")) {
-            $("#search_showadvanced").prop("checked", false);
-        } else {
-            $("#search_showadvanced").prop("checked", true);
-        }
+    $(".show_options").click(function(){
+        $("#search_options").toggleClass("d-block").toggleClass("d-none");
     });
-    if ($(".showMap").is(":checked")) {
+
+    if ($(".show_map").is(":checked")) {
         map.showMap();
     }
-    $(".showMap").click(function(){
+    $(".show_map").click(function(){
         if ($(this).is(":checked")) {
             map.showMap();
         } else {

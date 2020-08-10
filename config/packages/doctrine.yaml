@@ -1,9 +1,4 @@
 parameters:
-    # Adds a fallback DATABASE_URL if the env var is not set.
-    # This allows you to run cache:warmup even if your
-    # environment variables are not available yet.
-    # You should not need to change this value.
-    env(DATABASE_URL): ''
     database_host:     "%env(DB_HOST)%"
     database_port:     "%env(DB_PORT)%"
     database_name:     "%env(DB_NAME)%"
@@ -12,13 +7,15 @@ parameters:
 
 doctrine:
     dbal:
-        driver:   pdo_mysql
+        driver: pdo_mysql
         host:     "%env(DB_HOST)%"
         port:     "%env(DB_PORT)%"
         dbname:   "%env(DB_NAME)%"
         user:     "%env(DB_USER)%"
         password: "%env(DB_PASS)%"
-        server_version: 5.6
+
+        # IMPORTANT: You MUST configure your server version,
+        server_version: '10.1.41'
 
         charset: utf8mb4
 
@@ -41,10 +38,19 @@ doctrine:
             comment_quality: App\Doctrine\CommentQualityType
             comment_relations: App\Doctrine\CommentRelationsType
             language_level: App\Doctrine\LanguageLevelType
-            group_type: App\Doctrine\GroupTypeType
+            group_type: App\Doctrine\GroupType
             group_membership_status: App\Doctrine\GroupMembershipStatusType
             member_status: App\Doctrine\MemberStatusType
             accommodation: App\Doctrine\AccommodationType
+            domain: App\Doctrine\DomainType
+            forum_visibility: App\Doctrine\ForumVisibilityType
+            thread_reply: App\Doctrine\ThreadReplyType
+            forum_delete_status: App\Doctrine\ForumDeleteStatusType
+            can_still_edit: App\Doctrine\PostCanStillEditType
+            action_to_watch: App\Doctrine\ActionToWatchType
+            report_status: App\Doctrine\ReportStatusType
+            report_type: App\Doctrine\ReportTypeType
+            who_spoke_last: App\Doctrine\WhoSpokeLastType
 
         mapping_types:
             enum:       string
@@ -67,3 +73,7 @@ doctrine:
             language_filter:
                 class:   App\Doctrine\Filter\LanguageFilter
                 enabled: true
+        dql:
+            datetime_functions:
+                datediff: App\Doctrine\Functions\DateDiff
+                yearweek: App\Doctrine\Functions\YearWeek

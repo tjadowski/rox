@@ -23,23 +23,22 @@ Boston, MA  02111-1307, USA.
      * @author Fake51
      */
 
-    /**
+use App\Doctrine\GroupType;
+
+/**
      * This page allows for administration of groups
      *
      * @package Apps
      * @subpackage Groups
      */
-class GroupSettingsPage extends GroupsBasePage
+class GroupSettingsPage extends GroupsSubPage
 {
-    protected function teaserContent()
+    public function __construct($group)
     {
-        // &gt; or &raquo; ?
-        $words = $this->getWords();
-        ?>
-        <div>
-            <h1><a href="groups/mygroups"><?= $words->get('Groups');?></a> &raquo; <a href="groups/<?=$this->group->getPKValue(); ?>"><? echo htmlspecialchars($this->getGroupTitle(),ENT_QUOTES); ?></a>  &raquo;  <a href=""><?= $words->get('GroupsAdministrateGroup');?></a></h1>
-        </div>
-        <?php
+        parent::__construct($group);
+        $this->addLateLoadScriptFile('build/roxeditor.js');
+        $this->addLateLoadScriptFile('build/bsfileselect.js');
+        $this->addStylesheet('build/roxeditor.css');
     }
 
     protected function getSubmenuActiveItem()
@@ -52,6 +51,18 @@ class GroupSettingsPage extends GroupsBasePage
         // get translation module
         $layoutkit = $this->layoutkit;
         $words = $layoutkit->getWords();
+
+        if (!$this->canMemberAccess())
+        {
+            echo $words->get('GroupsNotPublic');
+            return;
+        }
+
+        if (!$this->isGroupOwner() && !($this->group->Type !== GroupType::INVITE_ONLY && $this->isGroupAdmin())) {
+            echo $words->get('GroupsSettingsOnlyAdmin');
+            return;
+        }
+
         $model = $this->getModel();
         $group_id = $this->group->id;
         $formkit = $layoutkit->formkit;
@@ -74,38 +85,35 @@ class GroupSettingsPage extends GroupsBasePage
             $problems = array();
         }
 ?>
-
-<div class="col-12">
     <form method="post" action="" enctype='multipart/form-data'>
+        <div class="row">
         <?=$callback_tag ?>
         <input type='hidden' name='group_id' value='<?=$this->group->getPKValue(); ?>' />
 
         <?php if (!empty($problems)){
             if (!empty($problems['General']) && $problems['General']){
-                echo "<div class='alert alert-danger w-100' role='alert'>" . $words->get('GroupsChangeFailed') . "</div>";
+                echo "<div class='col-12'><div class='alert alert-danger' role='alert'>" . $words->get('GroupsChangeFailed') . "</div></div>";
             }
         } else {
             if ($redirected) {
-                echo "<div class='alert alert-success w-100' role='alert'>" . $words->get('GroupsChangeSucceeded') . "</div>";
+                echo "<div class='col-12'><div class='alert alert-success' role='alert'>" . $words->get('GroupsChangeSucceeded') . "</div></div>";
             }}
         ?>
 
         <?php if (!empty($problems['ImageUploadTooBig']) && $problems['ImageUploadTooBig']){
-            echo "<div class='alert alert-danger p-2'>" . $words->get('GroupsImageUploadTooBig') . "</div>";
+            echo "<div class='col-12'><div class='alert alert-danger'>" . $words->get('GroupsImageUploadTooBig') . "</div></div>";
         }
         if (!empty($problems['ImageUpload']) && $problems['ImageUpload']){
-            echo "<div class='alert alert-danger p-2'>" . $words->get('GroupsImageUploadFailed') . "</div>";
+            echo "<div class='col-12'><div class='alert alert-danger'>" . $words->get('GroupsImageUploadFailed') . "</div></div>";
         }?>
-        <div class="row">
-
             <div class="col-8">
                 <h5><?= $words->get('GroupsAddImage'); ?></h5>
                 <div class="float-left">
                     <img class="float-left framed mr-2 mb-2" src="group/realimg/<?= $this->group->getPKValue(); ?>" width="100px" alt="Group image">
                 </div>
-                <div>
-                    <label for="group_image"><?= $words->get('GroupsImage'); ?></label>
-                    <input id="group_image" name="group_image" type="file" class="form-control btn btn-outline-primary p-0 text-left">
+                <div class="custom-file">
+                    <input id="group_image" name="group_image" type="file" class="custom-file-input">
+                    <label for="group_image" class="custom-file-label"><?= $words->get('GroupsImage'); ?></label>
                 </div>
 
             </div>
@@ -114,16 +122,15 @@ class GroupSettingsPage extends GroupsBasePage
                 <a class="btn btn-block btn-secondary" role="button" href="group/<?= $this->group->id; ?>/memberadministration"><i class="fa fa-users mr-1"></i><?= $words->get('GroupsAdministrateMembers'); ?></a>
                 <a class="btn btn-block btn-danger" role="button" href="group/<?= $this->group->id; ?>/delete"><i class="fa fa-trash mr-1"></i><?= $words->get('GroupsDeleteGroup'); ?></a>
             </div>
-        </div>
 
         <?= ((!empty($problems['GroupDesc_'])) ? "<div class='alert alert-danger p-2 mt-3'>" . $words->get('GroupsCreationDescriptionMissing') ."</div>" : '' ); ?>
 
-        <div class="input-group my-3">
-            <label for="description" class="h5 m-0"><?= $words->get('Description');?></label>
-            <textarea  id="description" name="GroupDesc_" aria-describedby="newgroupdescription" rows="5" class="w-100 p-2"><?=htmlspecialchars($GroupDesc_, ENT_QUOTES)?></textarea>
+        <div class="col-12">
+            <div class="form-group my-3">
+                <label for="description" class="h5 m-0"><?= $words->get('Description');?></label>
+                <textarea  id="description" name="GroupDesc_" aria-describedby="newgroupdescription" rows="5" class="form-control editor p-2"><?=htmlspecialchars($GroupDesc_, ENT_QUOTES)?></textarea>
+            </div>
         </div>
-
-</div>
 
         <div class="col-12 col-lg-6">
 
@@ -134,18 +141,27 @@ class GroupSettingsPage extends GroupsBasePage
                     <label class="m-0"><h5><?= $words->get('GroupsPublicStatusHeading'); ?></h5></label>
                 </legend>
 
-                <div class="form-check-inline">
-                    <label>
-                        <input type="radio" id="public" name="Type" value="Public"<?= (($Type=='Public') ? ' checked': ''); ?>>
+                <?php if (GroupType::INVITE_ONLY !== $Type) { ?>
+                <div class="form-check mb-3">
+                    <input type="radio" class="form-check-input" id="public" name="Type" value="Public"<?= (($Type=='Public') ? ' checked': ''); ?>>
+                    <label for="public" class="form-check-label">
                         <?=$words->get('GroupsJoinPublic'); ?>
                     </label>
                 </div>
-                <div class="form-check-inline">
-                    <label>
-                        <input type="radio" id="approved" name="Type" value="NeedAcceptance"<?= (($Type=='NeedAcceptance') ? ' checked': ''); ?>>
+                <div class="form-check mb-3">
+                    <input type="radio" class="form-check-input" id="approved" name="Type" value="NeedAcceptance"<?= (($Type=='NeedAcceptance') ? ' checked': ''); ?>>
+                    <label for="approved" class="form-check-label">
                         <?=$words->get('GroupsJoinApproved'); ?>
                     </label>
                 </div>
+                <?php } else { ?>
+                    <div class="form-check mb-3">
+                        <input type="radio" disabled="disabled" class="form-check-input" id="invitation" name="Type" value="NeedInvitation" checked="checked">
+                        <label for="invitation" class="form-check-label">
+                            <?=$words->get('groupsjoininvited'); ?>
+                        </label>
+                    </div>
+                <?php } ?>
             </fieldset>
         </div>
 
@@ -157,27 +173,26 @@ class GroupSettingsPage extends GroupsBasePage
                     <label class="m-0"><h5><?= $words->get('GroupsVisiblePostsHeading'); ?></h5></label>
                 </legend>
 
-                <div class="form-check-inline">
-                    <label>
-                        <input type="radio" id="visible" name="VisiblePosts" value="yes"<?= (($VisiblePosts=='yes') ? ' checked="checked"': ''); ?>>
+                <div class="form-check mb-3">
+                    <input type="radio" class="form-check-input" id="visible" name="VisiblePosts" value="yes"<?= (($VisiblePosts=='yes') ? ' checked="checked"': ''); ?>>
+                    <label for="visible" class="form-check-label">
                         <?=$words->get('GroupsVisiblePosts'); ?>
                     </label>
                 </div>
-                <div class="form-check-inline">
-                    <label>
-                        <input type="radio" id="invisible" name="VisiblePosts" value="no"<?= (($VisiblePosts=='no') ? ' checked="checked"': ''); ?>>
+                <div class="form-check mb-3">
+                    <input type="radio" class="form-check-input" id="invisible" name="VisiblePosts" value="no"<?= (($VisiblePosts=='no') ? ' checked="checked"': ''); ?>>
+                    <label for="invisible" class="form-check-label">
                         <?=$words->get('GroupsInvisiblePosts'); ?>
                     </label>
                 </div>
             </fieldset>
         </div>
 
-        <div class="col-12 text-center">
+        <div class="col-12 col-sm-6 offset-sm-6 text-center">
             <input type="submit" class="btn btn-block btn-primary my-2" value="<?= $words->getSilent('GroupsUpdateGroupSettings'); ?>">
-            </form>
         </div>
-
+        </div>
+    </form>
     <?php
     }
 }
-?>

@@ -6,9 +6,13 @@ use App\Entity\Member;
 use App\Entity\Message;
 use App\Entity\Subject;
 use App\Form\MessageToMemberType;
-use App\Utilities\MailerTrait;
+use App\Utilities\ManagerTrait;
+use DateTime;
+use Doctrine\ORM\OptimisticLockException;
+use Doctrine\ORM\ORMException;
 use Exception;
 use InvalidArgumentException;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,16 +30,13 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 class MessageController extends BaseMessageController
 {
-    use MailerTrait;
+    use ManagerTrait;
 
     /**
      * Deals with replies to messages and hosting requests.
      *
      * @Route("/message/{id}/reply", name="message_reply",
      *     requirements={"id": "\d+"})
-     *
-     * @param Request $request
-     * @param Message $message
      *
      * @throws AccessDeniedException
      * @throws Exception
@@ -63,10 +64,41 @@ class MessageController extends BaseMessageController
     }
 
     /**
-     * @Route("/message/{id}", name="message_show",
+     * Deals with deletion of messages and hosting requests.
+     *
+     * @Route("/message/{id}/delete/{redirect}", name="message_delete",
      *     requirements={"id": "\d+"})
      *
-     * @param Message $message
+     * @ParamConverter("redirect", class="App\Entity\Message", options={"id": "redirect"})
+
+     *
+     * @throws ORMException
+     * @throws OptimisticLockException
+     *
+     * @return Response
+     */
+    public function deleteMessageOrRequest(Message $message, Message $redirect)
+    {
+        if (!$this->isMessageOfMember($message)) {
+            throw $this->createAccessDeniedException('Not your message/hosting request');
+        }
+
+        /** @var Member $member */
+        $member = $this->getUser();
+
+        $this->messageModel->markDeleted($member, [$message->getId()]);
+        $this->addTranslatedFlash('notice', 'flash.message.deleted');
+
+        if ($message->getId() === $redirect->getId()) {
+            return $this->redirectToRoute('messages', ['folder' => 'deleted']);
+        }
+
+        return $this->redirectToRoute('message_show', ['id' => $redirect->getId()]);
+    }
+
+    /**
+     * @Route("/message/{id}", name="message_show",
+     *     requirements={"id": "\d+"})
      *
      * @throws Exception
      * @throws AccessDeniedException
@@ -97,7 +129,7 @@ class MessageController extends BaseMessageController
             if ($member === $item->getReceiver()) {
                 // Only mark as read if it is a message and when the receiver reads the message,
                 // not when the message is presented to the Sender with url /messages/{id}/sent
-                $item->setFirstRead(new \DateTime());
+                $item->setFirstRead(new DateTime());
                 $em->persist($item);
             }
         }
@@ -114,9 +146,6 @@ class MessageController extends BaseMessageController
     /**
      * @Route("/new/message/{username}", name="message_new")
      *
-     * @param Request $request
-     * @param Member  $receiver
-     *
      * @throws Exception
      *
      * @return Response
@@ -131,11 +160,13 @@ class MessageController extends BaseMessageController
             return $this->redirect($referrer);
         }
 
-        if ($this->messageModel->hasMessageLimitExceeded(
-            $sender,
-            $this->getParameter('new_members_messages_per_hour'),
-            $this->getParameter('new_members_messages_per_day')
-        )) {
+        if (
+            $this->messageModel->hasMessageLimitExceeded(
+                $sender,
+                $this->getParameter('new_members_messages_per_hour'),
+                $this->getParameter('new_members_messages_per_day')
+            )
+        ) {
             $this->addTranslatedFlash('error', 'flash.message.limit');
             $referrer = $request->headers->get('referer');
 
@@ -165,8 +196,7 @@ class MessageController extends BaseMessageController
      * @Route("/messages/{folder}", name="messages",
      *     defaults={"folder": "inbox"})
      *
-     * @param Request $request
-     * @param string  $folder
+     * @param string $folder
      *
      * @throws InvalidArgumentException
      *
@@ -192,8 +222,6 @@ class MessageController extends BaseMessageController
     /**
      * @Route("/message/{id}/spam", name="message_mark_spam")
      *
-     * @param Message $message
-     *
      * @return Response
      */
     public function markAsSpamAction(Message $message)
@@ -207,8 +235,6 @@ class MessageController extends BaseMessageController
 
     /**
      * @Route("/message/{id}/nospam", name="message_mark_nospam")
-     *
-     * @param Message $message
      *
      * @return Response
      */
@@ -224,9 +250,6 @@ class MessageController extends BaseMessageController
     /**
      * @Route("/all/messages/with/{username}", name="all_messages_with")
      *
-     * @param Request $request
-     * @param Member  $other
-     *
      * @throws InvalidArgumentException
      *
      * @return Response
@@ -239,6 +262,7 @@ class MessageController extends BaseMessageController
             throw new InvalidArgumentException();
         }
 
+        /** @var Member $member */
         $member = $this->getUser();
         $messages = $this->messageModel->getMessagesBetween($member, $other, $sort, $direction, $page, $limit);
 
@@ -255,8 +279,6 @@ class MessageController extends BaseMessageController
     /**
      * Takes care of the reply to a message.
      *
-     * @param Request   $request
-     * @param Member    $sender
      * @param Message[] $thread
      *
      * @throws Exception
@@ -273,7 +295,7 @@ class MessageController extends BaseMessageController
         if (null !== $subject) {
             $subjectText = $subject->getSubject();
             if ('Re:' !== substr($subjectText, 0, 3)) {
-                $subjectText = 'Re: '.$subjectText;
+                $subjectText = 'Re: ' . $subjectText;
             }
             $replyMessage->setSubject(new Subject());
             $replyMessage->getSubject()->setSubject($subjectText);
@@ -285,7 +307,7 @@ class MessageController extends BaseMessageController
         if ($messageForm->isSubmitted() && $messageForm->isValid()) {
             $replySubject = $messageForm->get('subject')->get('subject')->getData();
             if ('Re:' !== substr($replySubject, 0, 3)) {
-                $replySubject = 'Re: '.$replySubject;
+                $replySubject = 'Re: ' . $replySubject;
             }
 
             $messageText = $messageForm->get('message')->getData();

@@ -24,13 +24,13 @@ $p = PFunctions::paginate($statement, $page, $itemsPerPage);
 $statement = $p[0];
 
 ?>
-<div id="masonry-grid" class="row">
-    <?
+<div id="masonry-grid" class="row" data-masonry='{"percentPosition": true }'>
+    <?php
     foreach ($statement as $d) {
         echo '<div class="col-sm-6 col-lg-4 mb-4">';
         echo '<div class="card">';
         $title_short = ((strlen($d->title) >= 26) ? substr($d->title,0,25).'...' : $d->title);
-        echo '<a href="gallery/img?id='.$d->id.'" id="image_link_'.$d->id.'" data-toggle="lightbox" data-type="image" data-title="' . $d->title . '" data-gallery="a" class="text-center"><img class="img-fluid mx-auto d-block" src="gallery/thumbimg?id='.$d->id.($thumbsize ? '&t='.$thumbsize : '').'" alt="image"></a>';
+        echo '<a href="gallery/img?id='.$d->id.'" class="p-1" id="image_link_'.$d->id.'" data-toggle="lightbox" data-type="image" data-gallery="a" class="text-center"><img class="img-fluid img-thumbnail mx-auto d-block" src="gallery/thumbimg?id='.$d->id.($thumbsize ? '&t='.$thumbsize : '').'" alt="image"></a>';
         echo '<div class="card-body p-1"><h6 class="card-title text-truncate">';
         if ($this->loggedInMember && $this->loggedInMember->Username == $d->user_handle) {
             echo '<input type="checkbox" class="thumb_check input_check mr-1" name="imageId[]" value="'.$d->id.'">';
@@ -48,7 +48,7 @@ $statement = $p[0];
 </div>
 <div class="row">
 <div class="col-12">
-<?
+<?php
     $pages = $p[1];
     $maxPage = $p[2];
     $currentPage = $page;

@@ -7,13 +7,15 @@
 
 namespace App\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * GalleryItems.
+ * Gallery images.
  *
  * @ORM\Table(name="gallery_items", indexes={@ORM\Index(name="file", columns={"file"}), @ORM\Index(name="user_id_foreign", columns={"user_id_foreign"})})
  * @ORM\Entity
+ * @ORM\HasLifecycleCallbacks
  *
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
@@ -21,17 +23,24 @@ use Doctrine\ORM\Mapping as ORM;
 class GalleryImage
 {
     /**
+     * @var ArrayCollection
+     *
+     * @ORM\ManyToMany(targetEntity="Gallery", mappedBy="images")
+     */
+    private $galleries;
+
+    /**
      * @var Member
      *
-     * @ORM\OneToOne(targetEntity="Member", fetch="EAGER")
-     * @ORM\JoinColumn(name="user_id_foreign", referencedColumnName="id", nullable=false)
+     * @ORM\ManyToOne(targetEntity="Member", fetch="EAGER")
+     * @ORM\JoinColumn(name="user_id_foreign")
      */
     private $owner;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="file", type="string", length=40, nullable=false)
+     * @ORM\Column(name="file", type="string", length=48, nullable=false)
      */
     private $file;
 
@@ -100,10 +109,15 @@ class GalleryImage
      */
     private $id;
 
+    public function __construct()
+    {
+        $this->galleries = new ArrayCollection();
+    }
+
     /**
      * Set owner.
      *
-     * @param TBUser $owner
+     * @param Member $owner
      *
      * @return GalleryImage
      */
@@ -115,9 +129,9 @@ class GalleryImage
     }
 
     /**
-     * Get userIdForeign.
+     * Get owner.
      *
-     * @return TBUser
+     * @return Member
      */
     public function getOwner()
     {
@@ -348,5 +362,43 @@ class GalleryImage
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * Triggered on insert.
+     *
+     * @ORM\PrePersist
+     */
+    public function onPrePersist()
+    {
+        $this->created = new \DateTime('now');
+    }
+
+    /**
+     * Get galleries.
+     *
+     * @return ArrayCollection
+     */
+    public function getGalleries()
+    {
+        return $this->galleries;
+    }
+
+    /**
+     * Set gallery.
+     */
+    public function addGallery(Gallery $gallery)
+    {
+        $this->galleries->add($gallery);
+    }
+
+    public function removeGallery(Gallery $gallery): self
+    {
+        if ($this->galleries->contains($gallery)) {
+            $this->galleries->removeElement($gallery);
+            $gallery->removeImage($this);
+        }
+
+        return $this;
     }
 }

@@ -1,9 +1,12 @@
 {% extends 'base.html.twig' %}
 
+{% block javascripts %}
+{% endblock javascripts %}
+
 {% block content %}
     {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
     {{ form_errors(form) }}
-    <div class="row mb-1">
+    <div class="row">
         <div class="col-12">
             {{ form_row(form.subject.subject) }}
             {{ form_errors(form.subject) }}
@@ -12,7 +15,7 @@
         </div>
     </div>
 
-    <div class="row mb-1">
+    <div class="row mb-3">
         <div class="col-12">
             <button type="submit" class="btn btn-primary">{{ 'label.message.button.send' | trans }}</button>
         </div>

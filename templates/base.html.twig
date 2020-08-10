@@ -5,35 +5,40 @@
         <!-- Required meta tags -->
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="shortcut icon" href="/favicon.ico">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
 
         <title>
-            {%- spaceless -%}
+            {% apply spaceless %}
                 {% if block('title') is defined %}
                     {{ block('title') | trim }} |
                 {% endif %} BeWelcome
-            {%- endspaceless -%}
+            {% endapply %}
         </title>
 
         <meta name="description" content="{{ 'default_meta_description' | trans }}">
         <meta name="keywords" content="{{ 'default_meta_keyword' | trans }}">
         <meta name="robots" content="{{ robots }}">
+        {% block redirect %}{% endblock %}
 
-        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-        <!--[if lt IE 9]>
-            <script src="{{ asset('build/backwards.js') }}"></script>
-        <![endif]-->
-
-        <link rel="stylesheet" media="screen" href="{{ asset('build/bewelcome.css') }}" />
-        <!-- link rel="stylesheet" media="print" href="{{ asset('build/print.css') }}" / -->
+        {{ encore_entry_link_tags('bewelcome') }}
 
         {% block stylesheets %}{% endblock %}
         <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
-        <link rel="stylesheet" href="{{ asset('build/bewelcome.css') }}" />
+        {% block matomo %}{% endblock %}
+        <link rel='manifest' href='/manifest.json'>
+        <script>
+            // Check that service workers are supported
+            if ('serviceWorker' in navigator) {
+                // Use the window load event to keep the page load performant
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('{{ asset('service-worker.js') }}');
+                });
+            }
+        </script>
     </head>
     <body>
         {% include 'menu.html.twig' %}
-        <noscript><div class="container"><div class="alert alert-danger"><p class="h5">You need to activate Javascript for bewelcome.org</p><small>Without it some function won't work.</small></div></div></noscript>
         <main role="main">
             <div id="toasts" class="position-fixed w-100 d-flex flex-column px-2" style="z-index:1000">
             </div>
@@ -52,7 +57,7 @@
                 {% endfor %}
                 {% block content %}{% endblock %}
             {% endset %}
-            <div class="container">
+            <div class="container-lg">
                 {% if sidebar %}
                     <div class="row mt-2">
                         <div class="col-12 col-md-9">
@@ -69,12 +74,8 @@
                             </div>
                             <div class="list-group">
                                 {% for filter,menuItem in submenu.items %}
-                                    {% if submenu.active == filter %}
-                                        <span class="list-group-item nav-link active">{{ menuItem.key | lower | trans }}</span>
-                                    {% else %}
-                                        <a class="list-group-item nav-link "
-                                           href="{{ menuItem.url }}">{{ menuItem.key | lower | trans }}</a>
-                                    {% endif %}
+                                    <a class="list-group-item nav-link{% if submenu.active == filter %} active{% endif %}"
+                                       href="{{ menuItem.url }}">{{ menuItem.key | lower | trans }}</a>
                                 {% endfor %}
                             </div>
                         </div>
@@ -85,25 +86,24 @@
             </div>
         </main>
         {% include 'footer.html.twig' %}
-        <script src="{{ asset('build/runtime.js') }}"></script>
-        <script src="{{ asset('build/bewelcome.js') }}"></script>
-        <script src="{{ asset('build/updatecounters.js') }}"></script>
-        {% if sidebar %}
-            <script src="{{ asset('build/offcanvas.js') }}"></script>
-        {% endif %}
-        <script type="application/javascript">
-            $(".select2").select2({
-                theme: 'bootstrap',
-                containerCssClass: 'form-control'
-            });
-            $(".select2-inline").select2({
-                theme: 'bootstrap',
-                containerCssClass: 'form-control',
-                width: 'style'
-            });
-            $(".toast").toast('show');
+            {{ encore_entry_script_tags('bewelcome') }}
+            {{ encore_entry_script_tags('updatecounters') }}
+            {% if sidebar %}
+                {{ encore_entry_script_tags('offcanvas') }}
+            {% endif %}
+            <script type="application/javascript">
+                $(".select2").select2({
+                    theme: 'bootstrap',
+                    width: 'auto',
+                    dropdownAutoWidth: true
+                });
+                $(".select2-inline").select2({
+                    theme: 'bootstrap',
+                    width: 'auto'
+                });
+                $(".toast").toast('show');
 
-        </script>
+            </script>
         {% block javascripts %}{% endblock javascripts %}
     </body>
 </html>

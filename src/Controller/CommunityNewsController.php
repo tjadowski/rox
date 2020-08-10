@@ -25,8 +25,6 @@ class CommunityNewsController extends AbstractController
     }
 
     /**
-     * @param Request $request
-     *
      * @Route("/communitynews", name="communitynews")
      *
      * @return Response
@@ -46,8 +44,6 @@ class CommunityNewsController extends AbstractController
     /**
      * @Route("/communitynews/{id}", name="communitynews_show")
      *
-     * @param CommunityNews $communityNews
-     *
      * @return Response
      */
     public function showAction(Request $request, CommunityNews $communityNews)
@@ -66,15 +62,14 @@ class CommunityNewsController extends AbstractController
     /**
      * @Route("/communitynews/{id}/comment/add", name="communitynews_comment_add")
      *
-     * @param Request       $request
-     * @param CommunityNews $communityNews
-     *
      * @throws \Exception
      *
      * @return Response
      */
     public function addCommentAction(Request $request, CommunityNews $communityNews)
     {
+        $this->denyAccessUnlessGranted('IS_AUTHENTICATED_REMEMBERED', null, "Can't access this page");
+
         $communityNewsCommentRequest = new CommunityNewsCommentRequest();
         $form = $this->createForm(CommunityNewsCommentType::class, $communityNewsCommentRequest);
         $form->handleRequest($request);
@@ -86,7 +81,6 @@ class CommunityNewsController extends AbstractController
             $communityNewsComment->setCommunityNews($communityNews);
             $communityNewsComment->setTitle($data->title);
             $communityNewsComment->setText($data->text);
-            $communityNewsComment->setCreated(new \DateTime());
             $communityNewsComment->setAuthor($this->getUser());
             $em->persist($communityNewsComment);
             $em->flush();

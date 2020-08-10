@@ -169,8 +169,6 @@ SQL;
             $where .= ' AND members.HideBirthDate=\'No\'';
         }
 
-        $visitorsWhere = $this->generateVisitorsOnlyCond($vars);
-
         // if there is a condition using membertrads table, include it in table list for query
         if (preg_match('/memberstrads/i',$where)) {
             $tablelist .= ', memberstrads';
@@ -197,26 +195,12 @@ SQL;
         $where = preg_replace('/ AND 1=1/','',$where);
         $fullWhere = $where;
         $tablelistAll = $tablelist;
-        if ($visitorsWhere) { // hide non-public profiles from visitors
-            $fullWhere = $where . ' AND ' . $visitorsWhere;
-            $tablelist .= ', memberspublicprofiles';
-        }
 
         // perform search
         $TMember = $this->doSearch($vars, $tablelist, $fullWhere, $OrderBy, $start_rec, $limitcount);
 
         // get full count of search results if not logged in
         $rCountFull = -1;
-        if ($visitorsWhere) {
-            $result = $this->dao->query('
-                SELECT
-                    COUNT(DISTINCT members.id) AS fullCount
-                FROM
-                    (' . $tablelistAll . ')
-                ' . $where);
-            $row = $result->fetch(PDB::FETCH_OBJ);
-            $rCountFull = $row->fullCount;
-        }
         $vars['rCountFull'] = $rCountFull;
 
         return($TMember);
@@ -665,22 +649,6 @@ SQL;
         return '1=1';
     }
 
-   /**
-    *
-    * Checks if search is performed without login and adds condition for
-    * visitors to only see public profiles
-    *
-    * @param array		$vars: Variables from query (passed by reference)
-    *
-    * @return  string/boolean  WHERE condition (false if logged in)
-    */
-    private function generateVisitorsOnlyCond(&$vars) {
-        if ($this->getLoggedInMember()) {
-            return false;
-        }
-        return "memberspublicprofiles.IdMember=members.id";
-    }
-
     //------------------------------------------------------------------------------
     // Get param returns the param value if any
     private function GetParam($vars, $param, $defaultvalue = "")
@@ -741,7 +709,7 @@ WHERE
         }
         if (isset ($rr->id)) {
             // test if the member is the current member and has just bee rejected (security trick to immediately remove the current member in such a case)
-            if (array_key_exists("IdMember", $_SESSION) and $rr->id==$this->_session->get("IdMember")) $this->TestIfIsToReject($rr->Status) ;
+            if (array_key_exists("IdMember", $_SESSION) and $rr->id==$this->session->get("IdMember")) $this->TestIfIsToReject($rr->Status) ;
             return ($rr->id);
         }
         return (0);
@@ -765,8 +733,8 @@ WHERE
         if ($IdTrad == "")
             return ("");
 
-        if ($this->_session->has( 'IdLanguage' )) {
-             $IdLanguage=$this->_session->get('IdLanguage') ;
+        if ($this->session->has( 'IdLanguage' )) {
+             $IdLanguage=$this->session->get('IdLanguage') ;
         }
         else {
              $IdLanguage=0 ; // by default laguange 0
@@ -1042,8 +1010,8 @@ WHERE
     private function fUsername($cid) {
         if (!is_numeric($cid))
             return ($cid); // If cid is not numeric it is assumed to be already a username
-        if (array_key_exists("IdMember", $_SESSION) and $cid == $this->_session->get("IdMember"))
-            return ($this->_session->get("Username"));
+        if (array_key_exists("IdMember", $_SESSION) and $cid == $this->session->get("IdMember"))
+            return ($this->session->get("Username"));
         $query = $this->dao->query(
             "
 SELECT SQL_CACHE

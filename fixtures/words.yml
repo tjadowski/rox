@@ -3,19 +3,21 @@ App\Entity\Word:
         code: welcometosignup
         ShortCode: en
         Sentence: 'Welcome to the sign-up page'
+        domain: 'messages'
         updated: <dateTime()>
         donottranslate : no
         Language: '@language_en'
-        author: '@member_1'
+        author: '@bwadmin'
         created: <dateTime()>
         TranslationPriority: 1
         Description: 'Description'
-        isarchived: 0
+        isarchived: null
         majorupdate: <dateTime()>
     WelcomeToSignup_fr:
         code: welcometosignup
         ShortCode: fr
         Sentence: 'Bienvenue sur la page d’inscription'
+        domain: 'messages'
         updated: <dateTime()>
         donottranslate : no
         Language: '@language_fr'
@@ -23,6 +25,6 @@ App\Entity\Word:
         created: <dateTime()>
         TranslationPriority: 1
         Description: 'Description'
-        isarchived: 0
+        isarchived: null
         majorupdate: <dateTime()>
 

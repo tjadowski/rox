@@ -4,7 +4,6 @@ namespace App\Utilities;
 
 use App\Entity\Wiki;
 use App\Model\WikiModel;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Mike42\Wikitext\DefaultParserBackend;
 
@@ -22,9 +21,6 @@ class RoxWikiParserBackend extends DefaultParserBackend
 
     /**
      * RoxWikiParserBackend constructor.
-     *
-     * @param WikiModel $wikiModel
-     * @param EntityManagerInterface $em
      */
     public function __construct(WikiModel $wikiModel, EntityManagerInterface $em)
     {
@@ -58,9 +54,9 @@ class RoxWikiParserBackend extends DefaultParserBackend
         $info['exists'] = ($wikiPage) ? true : false;
 
         if ($info['exists']) {
-            $info['url'] = '/wiki/'.$info['url'];
+            $info['url'] = '/wiki/' . $info['url'];
         } else {
-            $info['url'] = '/wiki/'.$info['url'].'/create';
+            $info['url'] = '/wiki/' . $info['url'] . '/create';
         }
 
         return $info;

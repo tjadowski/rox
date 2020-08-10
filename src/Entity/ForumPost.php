@@ -7,25 +7,39 @@
 
 namespace App\Entity;
 
+use App\Doctrine\ForumDeleteStatusType;
+use App\Doctrine\ForumVisibilityType;
+use App\Doctrine\PostCanStillEditType;
 use Carbon\Carbon;
+use DateTime;
+use Doctrine\Common\Persistence\ObjectManagerAware;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Persistence\Mapping\ClassMetadata;
+use Doctrine\Persistence\ObjectManager;
 
 /**
  * ForumsPost.
  *
- * @ORM\Table(name="forums_posts", indexes={@ORM\Index(name="last_editorid", columns={"last_editorid"}), @ORM\Index(name="threadid", columns={"threadid"}), @ORM\Index(name="IdWriter", columns={"IdWriter"}), @ORM\Index(name="id", columns={"id"}), @ORM\Index(name="IdLocalEvent", columns={"IdLocalEvent"}), @ORM\Index(name="IdPoll", columns={"IdPoll"}), @ORM\Index(name="IdLocalVolMessage", columns={"IdLocalVolMessage"}), @ORM\Index(name="PostVisibility", columns={"PostVisibility"}), @ORM\Index(name="PostDeleted", columns={"PostDeleted"}), @ORM\Index(name="create_time", columns={"create_time"})})
+ * @ORM\Table(name="forums_posts", indexes={
+ *     @ORM\Index(name="last_editorid", columns={"last_editorid"}),
+ *     @ORM\Index(name="threadid", columns={"threadid"}),
+ *     @ORM\Index(name="IdWriter", columns={"IdWriter"}),
+ *     @ORM\Index(name="PostVisibility", columns={"PostVisibility"}),
+ *     @ORM\Index(name="PostDeleted", columns={"PostDeleted"}),
+ *     @ORM\Index(name="create_time", columns={"create_time"})})
  * @ORM\Entity
  *
  * @SuppressWarnings(PHPMD)
  * Auto generated class do not check mess
  */
-class ForumPost
+class ForumPost implements ObjectManagerAware
 {
     /**
      * @var int
      *
      * @ORM\Column(name="id", type="integer", nullable=false)
      * @ORM\Id
+     * @ORM\GeneratedValue
      */
     private $id;
 
@@ -40,20 +54,20 @@ class ForumPost
     /**
      * @var string
      *
-     * @ORM\Column(name="PostVisibility", type="string", nullable=false)
+     * @ORM\Column(name="PostVisibility", type="forum_visibility", nullable=false)
      */
-    private $postvisibility = 'NoRestriction';
+    private $postvisibility = ForumVisibilityType::MEMBERS_ONLY;
 
     /**
      * @var Member
      *
-     * @ORM\OneToOne(targetEntity="Member")
+     * @ORM\ManyToOne(targetEntity="Member")
      * @ORM\JoinColumn(name="IdWriter", referencedColumnName="id")
      */
     private $author;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="create_time", type="datetime", nullable=false)
      */
@@ -76,12 +90,12 @@ class ForumPost
     /**
      * @var string
      *
-     * @ORM\Column(name="OwnerCanStillEdit", type="string", nullable=false)
+     * @ORM\Column(name="OwnerCanStillEdit", type="can_still_edit", nullable=false)
      */
-    private $ownercanstilledit = 'Yes';
+    private $ownerCanStillEdit = PostCanStillEditType::CAN_STILL_EDIT;
 
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="last_edittime", type="datetime", nullable=true)
      */
@@ -102,46 +116,26 @@ class ForumPost
     private $editCount = '0';
 
     /**
-     * @var int
+     * @var Language
      *
-     * @ORM\Column(name="IdFirstLanguageUsed", type="integer", nullable=false)
+     * Default English
+     *
+     * @ORM\ManyToOne(targetEntity="Language")
+     * @ORM\JoinColumn(name="IdFirstLanguageUsed", referencedColumnName="id", nullable=false)
      */
-    private $idfirstlanguageused = '0';
+    private $language = null;
 
     /**
      * @var string
      *
-     * @ORM\Column(name="HasVotes", type="string", nullable=false)
+     * @ORM\Column(name="PostDeleted", type="forum_delete_status", nullable=false)
      */
-    private $hasvotes = 'No';
+    private $deleted = ForumDeleteStatusType::NOT_DELETED;
 
     /**
-     * @var int
-     *
-     * @ORM\Column(name="IdLocalVolMessage", type="integer", nullable=false)
+     * @var ObjectManager
      */
-    private $idlocalvolmessage = '0';
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="IdLocalEvent", type="integer", nullable=false)
-     */
-    private $idlocalevent = '0';
-
-    /**
-     * @var int
-     *
-     * @ORM\Column(name="IdPoll", type="integer", nullable=false)
-     */
-    private $idpoll = '0';
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="PostDeleted", type="string", nullable=false)
-     */
-    private $postdeleted = 'NotDeleted';
+    private $objectManager;
 
     /**
      * Set id.
@@ -240,30 +234,6 @@ class ForumPost
     }
 
     /**
-     * Set createTime.
-     *
-     * @param \DateTime $createTime
-     *
-     * @return ForumPost
-     */
-    public function setCreateTime($createTime)
-    {
-        $this->createTime = $createTime;
-
-        return $this;
-    }
-
-    /**
-     * Get createTime.
-     *
-     * @return \DateTime
-     */
-    public function getCreateTime()
-    {
-        return $this->createTime;
-    }
-
-    /**
      * Set message.
      *
      * @param string $message
@@ -314,13 +284,13 @@ class ForumPost
     /**
      * Set ownercanstilledit.
      *
-     * @param string $ownercanstilledit
+     * @param string $ownerCanStillEdit
      *
      * @return ForumPost
      */
-    public function setOwnercanstilledit($ownercanstilledit)
+    public function setOwnerCanStillEdit($ownerCanStillEdit)
     {
-        $this->ownercanstilledit = $ownercanstilledit;
+        $this->ownerCanStillEdit = $ownerCanStillEdit;
 
         return $this;
     }
@@ -330,15 +300,15 @@ class ForumPost
      *
      * @return string
      */
-    public function getOwnercanstilledit()
+    public function getOwnerCanStillEdit()
     {
-        return $this->ownercanstilledit;
+        return $this->ownerCanStillEdit;
     }
 
     /**
      * Set lastEdittime.
      *
-     * @param \DateTime $lastEdittime
+     * @param DateTime $lastEdittime
      *
      * @return ForumPost
      */
@@ -352,7 +322,7 @@ class ForumPost
     /**
      * Get lastEdittime.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getLastEdittime()
     {
@@ -408,27 +378,27 @@ class ForumPost
     }
 
     /**
-     * Set idfirstlanguageused.
+     * Set language.
      *
-     * @param int $idfirstlanguageused
+     * @param Language $language
      *
      * @return ForumPost
      */
-    public function setIdfirstlanguageused($idfirstlanguageused)
+    public function setLanguage($language)
     {
-        $this->idfirstlanguageused = $idfirstlanguageused;
+        $this->language = $language;
 
         return $this;
     }
 
     /**
-     * Get idfirstlanguageused.
+     * Get language.
      *
-     * @return int
+     * @return Language
      */
-    public function getIdfirstlanguageused()
+    public function getLanguage()
     {
-        return $this->idfirstlanguageused;
+        return $this->language;
     }
 
     /**
@@ -528,37 +498,27 @@ class ForumPost
     }
 
     /**
-     * Set postdeleted.
+     * Set deleted.
      *
-     * @param string $postdeleted
+     * @param string $deleted
      *
      * @return ForumPost
      */
-    public function setPostdeleted($postdeleted)
+    public function setDeleted($deleted)
     {
-        $this->postdeleted = $postdeleted;
+        $this->deleted = $deleted;
 
         return $this;
     }
 
     /**
-     * Get postdeleted.
+     * Get deleted.
      *
      * @return string
      */
-    public function getPostdeleted()
+    public function getDeleted()
     {
-        return $this->postdeleted;
-    }
-
-    /**
-     * Get postid.
-     *
-     * @return int
-     */
-    public function getPostid()
-    {
-        return $this->postid;
+        return $this->deleted;
     }
 
     /**
@@ -602,7 +562,7 @@ class ForumPost
     /**
      * Get author.
      *
-     * @return \App\Entity\Member
+     * @return Member
      */
     public function getAuthor()
     {
@@ -612,7 +572,7 @@ class ForumPost
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return ForumPost
      */
@@ -636,7 +596,7 @@ class ForumPost
     /**
      * Set updated.
      *
-     * @param \DateTime $updated
+     * @param DateTime $updated
      *
      * @return ForumPost
      */
@@ -654,10 +614,35 @@ class ForumPost
      */
     public function getUpdated()
     {
-        if ($this->updated) {
+        if ($this->updated && -62169987208 !== $this->updated->getTimestamp()) {
             return Carbon::instance($this->updated);
         }
 
         return Carbon::instance($this->created);
+    }
+
+    /*
+     * Translated post content is only provided on explicit call to avoid long load times
+     */
+    public function getMessageTranslations()
+    {
+        $translationRepository = $this->objectManager->getRepository(Translation::class);
+        $translatedMessages = $translationRepository->findBy(['idTrad' => $this->idcontent]);
+
+        $messages = [];
+        /** @var Translation $message */
+        foreach ($translatedMessages as $message) {
+            $messages[$message->getLanguage()->getShortCode()] = [
+                'language' => $message->getLanguage(),
+                'message' => $message->getSentence(),
+            ];
+        }
+
+        return $messages;
+    }
+
+    public function injectObjectManager(ObjectManager $objectManager, ClassMetadata $classMetadata)
+    {
+        $this->objectManager = $objectManager;
     }
 }

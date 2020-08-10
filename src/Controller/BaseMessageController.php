@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\Member;
 use App\Entity\Message;
 use App\Form\CustomDataClass\MessageIndexRequest;
 use App\Form\MessageIndexFormType;
 use App\Model\MessageModel;
 use App\Repository\MessageRepository;
+use App\Service\Mailer;
 use App\Utilities\TranslatedFlashTrait;
 use App\Utilities\TranslatorTrait;
 use Doctrine\ORM\OptimisticLockException;
@@ -59,15 +61,13 @@ class BaseMessageController extends AbstractController
             ],
             'messages_deleted' => [
                 'key' => 'MessagesDeleted',
-                'url' => $this->generateUrl('messages', ['folder' => 'deleted']),
+                'url' => $this->generateUrl('both', ['folder' => 'deleted']),
             ],
         ];
     }
 
     /**
-     * @param Request    $request
-     * @param string     $folder
-     * @param Pagerfanta $messages
+     * @param string $folder
      * @param $type
      *
      * @throws ORMException
@@ -77,6 +77,7 @@ class BaseMessageController extends AbstractController
      */
     protected function handleFolderRequest(Request $request, $folder, Pagerfanta $messages, $type)
     {
+        /** @var Member $member */
         $member = $this->getUser();
         $messageIds = [];
         foreach ($messages->getIterator() as $key => $val) {
@@ -92,13 +93,16 @@ class BaseMessageController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             $messageIds = $data->getMessages();
-            if ($form->get('purge')->isClicked()) {
+
+            $clickedButton = $form->getClickedButton();
+
+            if ('purge' === $clickedButton) {
                 $this->messageModel->markPurged($member, $messageIds);
                 $this->addTranslatedFlash('notice', 'flash.purged');
 
                 return $this->redirect($request->getRequestUri());
             }
-            if ($form->get('delete')->isClicked()) {
+            if ('delete' == $clickedButton) {
                 if ('deleted' === $folder) {
                     $this->messageModel->unmarkDeleted($member, $messageIds);
                     $this->addTranslatedFlash('notice', 'flash.undeleted');
@@ -110,7 +114,7 @@ class BaseMessageController extends AbstractController
 
                 return $this->redirect($request->getRequestUri());
             }
-            if ($form->get('spam')->isClicked()) {
+            if ('spam' === $clickedButton) {
                 if ('spam' === $folder) {
                     $this->messageModel->unmarkAsSpam($messageIds);
                     $this->addTranslatedFlash('notice', 'flash.marked.nospam');
@@ -130,17 +134,16 @@ class BaseMessageController extends AbstractController
             'folder' => $folder,
             'filter' => $request->query->all(),
             'submenu' => [
-                'active' => $type.'_'.$folder,
+                'active' => $type . '_' . $folder,
                 'items' => $this->getSubMenuItems(),
             ],
         ]);
     }
 
     /**
-     * @param Message $message
+     * @throws AccessDeniedException
      *
      * @return bool
-     * @throws AccessDeniedException
      */
     protected function isMessageOfMember(Message $message)
     {
@@ -163,14 +166,13 @@ class BaseMessageController extends AbstractController
         // as there might be a clash of replies
         /** @var MessageRepository */
         $hostingRequestRepository = $this->getDoctrine()->getRepository(Message::class);
+        /** @var Message[] $messages */
         $messages = $hostingRequestRepository->findBy(['subject' => $probableParent->getSubject()]);
 
         return $messages[\count($messages) - 1];
     }
 
     /**
-     * @param Request $request
-     *
      * @return array
      */
     protected function getOptionsFromRequest(Request $request)

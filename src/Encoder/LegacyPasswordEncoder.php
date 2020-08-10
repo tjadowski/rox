@@ -32,10 +32,17 @@ class LegacyPasswordEncoder implements PasswordEncoderInterface
      */
     public function encodePassword($raw, $salt)
     {
-        return '*'.strtoupper(
+        return '*' . strtoupper(
             sha1(
                 sha1($raw, true)
             )
         );
+    }
+
+    public function needsRehash(string $encoded): bool
+    {
+        $isOldHash = 45 === \strlen($encoded) && false !== strpos($encoded, '*');
+
+        return $isOldHash;
     }
 }

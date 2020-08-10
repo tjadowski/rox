@@ -29,7 +29,7 @@ Boston, MA  02111-1307, USA.
  * @subpackage template
  * @author Michael Dettbarn <lupochen@gmx.de>
  */
- 
+
 $Shouts = new Shouts;
 $callbackId = $Shouts->shoutProcess($table,$table_id);
 $vars =& PPostHandler::getVars($callbackId);
@@ -57,9 +57,9 @@ if (!isset($vars['errors'])) {
 <?php
 
 $comments = $Shouts->getShouts($table,$table_id);
-if (!$comments) 
+if (!$comments)
 {
-    if ($this->_session->has( 'IdMember' ) && $this->_session->get('IdMember'))
+    if ($this->session->has( 'IdMember' ) && $this->session->get('IdMember'))
         {
         echo '<p><a href="#" id="commentadd">'.$words->get('CommentsAdd').'</a></p>';
         }
@@ -67,18 +67,18 @@ if (!$comments)
         {
         echo '<p>'.$words->get('CommentsAdd').'</p>';
         }
-} 
-else 
+}
+else
 {
     $count = 0;
     $lastHandle = '';
-    foreach ($comments as $comment) 
+    foreach ($comments as $comment)
     {
         require 'comment.php';
         ++$count;
         $lastHandle = $comment->username;
     }
-    if ($this->_session->has( 'IdMember' ) && $this->_session->get('IdMember'))
+    if ($this->session->has( 'IdMember' ) && $this->session->get('IdMember'))
         {
         echo '<p><a href="#" id="commentadd">'.$words->get('CommentsAdd').'</a></p>';
         }
@@ -88,7 +88,7 @@ else
         }
 }
 
-if ($this->_session->has( 'IdMember' ) && $this->_session->get('IdMember')) {
+if ($this->session->has( 'IdMember' ) && $this->session->get('IdMember')) {
 ?>
 <div id="comment-form">
 <form method="post" action="" class="def-form" id="blog-comment-form">
@@ -98,7 +98,7 @@ if ($this->_session->has( 'IdMember' ) && $this->_session->get('IdMember')) {
 echo isset($vars['ctit']) ? 'value="'.htmlentities($vars['ctit'], ENT_COMPAT, 'utf-8').'" ' : '';
 ?>/>
         <div id="bcomment-title" class="statbtn"></div>
-<?
+<?php
 if (in_array('title', $vars['errors'])) {
     echo '<span class="error">'.$commentsError['title'].'</span>';
 }
@@ -111,7 +111,7 @@ if (in_array('title', $vars['errors'])) {
 echo isset($vars['ctxt']) ? htmlentities($vars['ctxt'], ENT_COMPAT, 'utf-8') : '';
       ?></textarea>
         <div id="bcomment-text" class="statbtn"></div>
-<?
+<?php
 if (in_array('textlen', $vars['errors'])) {
     echo '<span class="error">'.$commentsError['textlen'].'</span>';
 }
@@ -133,7 +133,7 @@ $('comment-form').hide();
 $('commentadd').onclick = function (){ $('comment-form').toggle(); return false;}
 //-->
 </script>
-<?
+<?php
 } else {
     // not logged in.
 

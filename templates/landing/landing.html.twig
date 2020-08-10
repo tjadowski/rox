@@ -2,18 +2,17 @@
 {% import 'macros.twig' as macros %}
 
 {% block stylesheets %}
-    <link rel="stylesheet" href="{{ asset('build/jquery_ui.css') }}" />
+    {{ encore_entry_link_tags('jquery_ui') }}
 {% endblock stylesheets %}
 
 {% block javascripts %}
-    <script src="{{ asset('build/jquery_ui.js') }}"></script>
-    <script src="{{ asset('build/landing.js') }}"></script>
-    <script src="{{ asset('build/search/searchpicker.js') }}"></script>
+    {{ encore_entry_script_tags('landing') }}
+    {{ encore_entry_script_tags('jquery_ui') }}
+    {{ encore_entry_script_tags('search/searchpicker') }}
 {% endblock javascripts %}
 
 {% block content %}
     <div class="row welcomeback mx-0 mb-4 p-2">
-
         {% include 'landing/widget/profilepicturewithaccommodation.html.twig' with {
         member: app.user
         } only %}
@@ -30,7 +29,7 @@
                     } only %}
                     in
                     {# Provide a way to search in member's location #}
-                    {{ form_start( searchLocation, { 'action': path('search_members'), 'attr' : {'style' : 'display: inline;'}} ) }}
+                    {{ form_start( searchLocation, { 'action': path('search_locations'), 'attr' : {'style' : 'display: inline;'}} ) }}
                     {{ form_widget(searchLocation.updateMap, {'attr' : {'class' : 'searchsubmit ml-1 mb-0 homecity'},
                         'label': searchLocation.vars.value.location } ) }}
                     <div class="d-none invisible">{{ form_rest(searchLocation) }}</div>
@@ -42,13 +41,13 @@
         </div>
         {# where do you want to go? #}
         <div class="col-12 col-lg-4 align-self-center ml-auto">
-            {{ form_start( tinySearch, { 'action': path('search_members') } ) }}
+            {{ form_start( tinySearch, { 'action': path('search_locations') } ) }}
 
             <label for="search_goto_location_form_search" class="sr-only">{{ 'landing.whereyougo' | trans }}</label>
             <div class="input-group">
                 {{ form_widget( tinySearch.location, { 'attr' : { 'class' : 'search-picker form-control' } } ) }}
                 <span class="input-group-append">
-                                {{ form_widget( tinySearch.updateMap, { 'action': path('search_members'), 'attr' : { 'class' : 'btn btn-primary' },
+                                {{ form_widget( tinySearch.updateMap, { 'action': path('search_locations'), 'attr' : { 'class' : 'btn btn-primary' },
                                     'label': 'Go' } ) }}
                 </span>
             </div>
@@ -59,7 +58,7 @@
     </div>
 
     <div class="d-flex row align-items-stretch flex-wrap pb-3">
-        
+
         {# messages box #}
         <div class="col-12 col-lg-5 align-items-stretch">
 
@@ -80,12 +79,12 @@
                 {# messages #}
                 <div role="tabpanel" class="tab-pane h-100 active" id="messages">
                     {# all / unread messages toggle #}
-                    <div class="d-flex btn-group justify-content-center m-1" data-toggle="buttons">
-                        <label class="btn btn-primary btn-radio{% if messageFilter == 'All' %} active{% endif %}" id="all">
+                    <div class="d-flex btn-group justify-content-center m-1" data-toggle="buttons" role="radiogroup">
+                        <label class="btn btn-outline-primary{% if messageFilter == 'All' %} active{% endif %}" id="all" role="radio">
                             <input type="radio" name="options" autocomplete="off" onclick="updateMessages()"
                                    {% if messageFilter == 'All' %}checked{% endif %} hidden>{{ 'landing.button.all' | trans }}
                         </label>
-                        <label for="unread" class="btn btn-primary btn-radio{% if messageFilter == 'Unread' %} active{% endif %}" id="unread">
+                        <label for="unread" class="btn btn-outline-primary{% if messageFilter == 'Unread' %} active{% endif %}" id="unread" role="radio">
                             <input type="radio" name="options" autocomplete="off" onclick="updateMessages()" {% if messageFilter == 'Unread' %}checked{% endif %} hidden>{{ 'landing.button.unread' | trans }}
                         </label>
                     </div>
@@ -93,14 +92,14 @@
                     {# received messages #}
                     <div id="messagesdisplay" class="scrollcontent">
                         <p class="text-center my-3">
-                            <i class="fa fa-4x fa-spin fa-spinner my-3"></i><br>
+                            <i class="fa fa-4x fa-pulse fa-spinner my-3"></i><br>
                             {{ 'dashboard.load.messages' | trans }}</p>
                     </div>
 
                     {# message buttons #}
-                    <div class="text-center">
-                        <a href="{{ url( 'both' )}}" class="btn btn-outline-primary btn-homewhite"><i
-                                    class="fa fa-envelope"></i>{{ 'landing.button.myinbox' | trans }}{% if messageCount + requestCount %} <span
+                    <div class="text-center mt-2">
+                        <a href="{{ url( 'both' )}}" class="btn btn-outline-primary btn-homewhite">
+                            <i class="fa fa-envelope mr-1"></i>{{ 'landing.button.myinbox' | trans }}{% if messageCount + requestCount %} <span
                                     class="badge badge-primary">{{ messageCount + requestCount }}</span>{% endif %}</a>
                     </div>
                 </div>
@@ -109,7 +108,7 @@
                 <div role="tabpanel" class="tab-pane h-100 p-2" id="notifications">
                     <div id="notificationsdisplay">
                         <p class="text-center my-3">
-                            <i class="fa fa-4x fa-spin fa-spinner my-3"></i><br/>
+                            <i class="fa fa-4x fa-pulse fa-spinner my-3"></i><br/>
                             {{ 'dashboard.load.notifications' | trans }}</p>
                     </div>
                 </div>
@@ -136,10 +135,10 @@
 
                     {# display settings#}
                     <div class="d-flex btn-group justify-content-center m-1" data-toggle="buttons">
-                        <label class="btn btn-primary btn-radio{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Groups' %} active{% endif %}" id="groupsButton">
+                        <label class="btn btn-outline-primary{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Groups' %} active{% endif %}" id="groupsButton">
                             <input type="checkbox" autocomplete="off"{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Groups' %} checked{% endif %} hidden>{{ 'landing.button.groups' | trans }}
                         </label>
-                        <label class="btn btn-primary btn-radio{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Forums' %} active{% endif %}" id="forumButton">
+                        <label class="btn btn-outline-primary{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Forums' %} active{% endif %}" id="forumButton">
                             <input type="checkbox" autocomplete="off"{% if forumFilter == 'GroupsAndForums' or forumFilter == 'Forums' %} checked{% endif %} hidden>{{ 'landing.button.forum' | trans }}
                         </label>
                     </div>
@@ -147,18 +146,18 @@
                     {# received messages #}
                     <div id="threadsdisplay">
                         <p class="text-center">
-                            <i class="fa fa-4x fa-spin fa-spinner my-5 align-middle"></i><br/>
+                            <i class="fa fa-4x fa-pulse fa-spinner my-5 align-middle"></i><br/>
                             {{ 'dashboard.load.threads' | trans }}</p>
                     </div>
 
-                    <div class="text-center">
+                    <div class="text-center mt-2">
                         <div class="btn-group" role="group" aria-label="...">
                             <a href="/forums" class="btn btn-outline-primary btn-homewhite"><i
                                         class="fa fa-comments mr-1"></i>{{ 'landing.button.discussions' | trans }}</a>
                             <a href="/groups/mygroups" class="btn btn-outline-primary btn-homewhite"><i
                                         class="fa fa-users mr-1"></i>{{ 'landing.button.mygroups' | trans }}</a>
                             <a href="/forums/subscriptions" class="btn btn-outline-primary btn-homewhite"><i
-                                        class="fa fa-check-square-o mr-1"></i>{{ 'landing.button.subscriptions' | trans }}</a>
+                                        class="fa fa-check-square mr-1"></i>{{ 'landing.button.subscriptions' | trans }}</a>
                         </div>
                     </div>
 
@@ -168,15 +167,22 @@
                 <div role="tabpanel" class="tab-pane h-100" id="activities">
                     <div class="d-flex btn-group justify-content-center m-1" role="group">
                         <a href="/activities" class="btn btn-outline-primary btn-homewhite"><i
-                                    class="fa fa-map-o"></i> {{ 'landing.activities.allactivities' | trans }}</a>
+                                    class="fa fa-map"></i> {{ 'landing.activities.allactivities' | trans }}</a>
                         <a href="/activities/myactivities" class="btn btn-outline-primary btn-homewhite"><i
                                     class="fa fa-calendar"></i> {{ 'landing.activities.myactivities' | trans }}</a>
                         <a href="/activities/create" class="btn btn-outline-primary btn-homewhite"><i
-                                    class="fa fa-calendar-plus-o"></i> {{ 'landing.activities.create' | trans }}</a>
+                                    class="fa fa-calendar-plus"></i> {{ 'landing.activities.create' | trans }}</a>
+                    </div>
+                    <div class="m-1">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="show_online"
+                                   name="show_online" {% if onlineActivities %}checked{% endif %}>
+                            <label class="custom-control-label" for="show_online">{{ 'landing.activities.show.online'|trans }}</label>
+                        </div>
                     </div>
                     <div id="activitiesdisplay" class="col-12">
                         <p class="text-center my-3">
-                            <i class="fa fa-4x fa-spin fa-spinner my-3"></i><br/>
+                            <i class="fa fa-4x fa-pulse fa-spinner my-3"></i><br/>
                             {{ 'dashboard.load.activities' | trans }}</p>
                     </div>
                 </div>
@@ -193,31 +199,40 @@
     <div class="d-flex row flex-wrap">
 
         <div class="col-12 col-lg-5 mb-3">
-            <div class="card p-2 h-100">
-                <h4 class="homehfour">{{ 'landing.beinvolved.title' | trans }}<br/><span class="homesubt">{{ 'landing.beinvolved.subtitle' | trans }}</span></h4>
+            <div class="card p-2 mb-3">
+                <h4 class="homehfour">{{ 'landing.beinvolved.title' | trans }}<br/><span class="homesubt">{{ 'landing.beinvolved.donate' | trans }}</span></h4>
+
+                <p class="text-center mb-0">{{ 'landing.beinvolved.goalfor' | trans }} {{ campaign.year }} - {{ campaign.year + 1 }}:
+                    <strong>€{{ campaign.yearNeeded }}</strong></p>
 
                 {% if campaign.yearDonated < campaign.yearNeeded %}
-                    <p class="text-center mb-0">{{ 'landing.beinvolved.goalfor' | trans }} {{ campaign.year }} - {{ campaign.year + 1 }}:
-                        <strong>€{{ campaign.yearNeeded }}</strong></p>
-
                     <div class="progress">
                         <div class="progress-bar" role="progressbar" style="width: {{ (campaign.yearDonated / campaign.yearNeeded) * 100 }}%;" aria-valuenow="{{ campaign.yearDonated }}" aria-valuemin="0" aria-valuemax="{{ campaign.yearNeeded }}"></div>
                     </div>
-                    <p class="text-center">
-                        {{ '€ ' ~ campaign.yearDonated ~ ''}}
-                        <span class="ml-1">{{ 'dashboard.donation.received' | trans }}</span></p>
-                    <p><a href="{{ url('donate') }}" class="btn btn-outline-primary btn-homewhite btn-block mb-1"><i
-                                    class="fa fa-euro"></i> {{ 'landing.beinvolved.pleasedonate' | trans }}</a></p>
-
-
+                {% else %}
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {{ (campaign.yearNeeded / campaign.yearDonated) * 100 }}%" aria-valuenow="campaign.yearNeeded" aria-valuemin="0" aria-valuemax="campaign.yearDonated" title="{{ 'donation.needed'|trans }}"></div>
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ ((campaign.yearDonated - campaign.yearNeeded) / campaign.yearDonated) * 100 }}%" aria-valuenow="((campaign.yearDonated - campaign.yearNeeded) / campaign.yearDonated)" aria-valuemin="0" aria-valuemax="100" title="{{ 'donation.additional'|trans }}"></div>
+                    </div>
                 {% endif %}
+
+                <p class="text-center">
+                    {{ '€ ' ~ campaign.yearDonated ~ ''}}
+                    <span class="ml-1">{{ 'dashboard.donation.received' | trans }}</span></p>
+                {% if campaign.yearDonated >= campaign.yearNeeded %}
+                    <p>{{ 'donation.thank.you'|trans({'amount':'€' ~ campaign.yearNeeded}) }}</p>
+                {% endif %}
+                <p><a href="{{ url('donate') }}" class="btn btn-block {% if campaign.yearDonated < campaign.yearNeeded %}btn-primary{% else %}btn-outline-primary{% endif %} mb-1"><i
+                                class="fa fa-euro-sign"></i> {{ 'landing.beinvolved.pleasedonate' | trans }}</a></p>
+
+            </div>
+
+            <div class="card p-2">
+                <h4 class="homehfour">{{ 'landing.beinvolved.title' | trans }}<br/><span class="homesubt">{{ 'landing.beinvolved.volunteer' | trans }}</span></h4>
 
                 <p>{{ 'landing.beinvolved.intro' | trans }}</p>
                 <p><a href="{{ url('getactive') }}" class="btn btn-outline-primary btn-homewhite btn-block"><i
-                            class="fa fa-wrench"></i> {{ 'landing.beinvolved.helpbewelcome' | trans }}</a></p>
-                <p><a href="{{ url('donate') }}" class="btn btn-outline-primary btn-homewhite btn-block mb-1"><i
-                                class="fa fa-euro"></i> {{ 'landing.beinvolved.pleasedonate' | trans }}</a></p>
-
+                                class="fa fa-wrench"></i> {{ 'landing.beinvolved.helpbewelcome' | trans }}</a></p>
             </div>
         </div>
 
@@ -233,10 +248,10 @@
                             class="btn btn-sm btn-primary">{{ 'label.read.more' | trans }}</a>
                 <div>
                     <small>{{ communityNews.createdAt.diffForHumans }}</small>
-                    {% set commentsCount = communityNews.comments | length %}<small class="float-right">{% transchoice commentsCount with {'%commentsCount%': commentsCount} %}bewelcome_news.nrcomments{% endtranschoice %}</small>
+                    {% set commentsCount = communityNews.comments | length %}<small class="float-right">{% trans with {'%commentsCount%': commentsCount} %}bewelcome_news.nrcomments{% endtrans %}</small>
                 </div>
                 <a href="{{ url('communitynews') }}" class="btn btn-outline-primary btn-homewhite btn-block mt-2"><i
-                            class="fa fa-newspaper-o"></i> {{ 'landing.bwnews.allnews' | trans }}</a>
+                            class="far fa-newspaper"></i> {{ 'landing.bwnews.allnews' | trans }}</a>
             </div>
         </div>
 
@@ -245,20 +260,22 @@
                 <h4 class="homehfour">{{ 'landing.beinformed.title' | trans }}<br/><span class="homesubt">{{ 'landing.beinformed.subtitle' | trans }}</span></h4>
                 <a href="{{ url('about') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-question mr-2"></i>{{ 'landing.beinformed.about' | trans }}</a>
-                <a href="/faq" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                <a href="{{ url('about_faq') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-question mr-2"></i>{{ 'landing.beinformed.faq' | trans }}</a>
-                <a href="/safety" class="btn btn-outline-primary btn-homewhite btn-sm btn-block mb-1 text-truncate"><i
+                <a href="{{ url('safety') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block mb-1 text-truncate"><i
                             class="fa fa-user-shield mr-2"></i>{{ 'landing.beinformed.safety' | trans }}</a>
-                <a href="http://www.bevolunteer.org/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                <a href="https://www.bevolunteer.org/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-bullseye mr-2"></i>{{ 'landing.beinformed.bevolunteer' | trans }}</a>
-                <a href="http://www.bevolunteer.org/reports/annual-reports/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                <a href="https://www.bevolunteer.org/reports/annual-reports/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-book mr-2"></i>{{ 'landing.beinformed.annualreport' | trans }}</a>
-                <a href="http://www.bevolunteer.org/reports/financial-reports/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block mb-1 text-truncate"><i
+                <a href="https://www.bevolunteer.org/reports/financial-reports/" target="_blank" class="btn btn-outline-primary btn-homewhite btn-sm btn-block mb-1 text-truncate"><i
                             class="fa fa-money-bill-wave-alt mr-2"></i>{{ 'landing.beinformed.finances' | trans }}</a>
-                <a href="/terms" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                <a href="{{ url('terms_of_use', {'locale': app.request.locale }) }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-book mr-2"></i>{{ 'landing.beinformed.termsofuse' | trans }}</a>
-                <a href="/privacy" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                <a href="{{ url('privacy') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-book mr-2"></i>{{ 'landing.beinformed.privacypolicy' | trans }}</a>
+                <a href="{{ url('data_rights') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
+                            class="fa fa-book mr-2"></i>{{ 'landing.beinformed.datarights' | trans }}</a>
                 <a href="{{ url('credits') }}" class="btn btn-outline-primary btn-homewhite btn-sm btn-block text-truncate"><i
                             class="fa fa-book mr-2"></i>{{ 'credits.title' | trans }}</a>
             </div>

@@ -7,6 +7,7 @@
 
 namespace App\Entity;
 
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -22,7 +23,7 @@ use Doctrine\ORM\Mapping as ORM;
 class Right
 {
     /**
-     * @var \DateTime
+     * @var DateTime
      *
      * @ORM\Column(name="created", type="datetime", nullable=false)
      */
@@ -80,7 +81,7 @@ class Right
     /**
      * Set created.
      *
-     * @param \DateTime $created
+     * @param DateTime $created
      *
      * @return Right
      */
@@ -94,7 +95,7 @@ class Right
     /**
      * Get created.
      *
-     * @return \DateTime
+     * @return DateTime
      */
     public function getCreated()
     {
@@ -162,11 +163,9 @@ class Right
     /**
      * Add rightVolunteer.
      *
-     * @param \App\Entity\RightVolunteer $rightVolunteer
-     *
      * @return Right
      */
-    public function addRightVolunteer(\App\Entity\RightVolunteer $rightVolunteer)
+    public function addRightVolunteer(RightVolunteer $rightVolunteer)
     {
         $this->rightVolunteers[] = $rightVolunteer;
 
@@ -175,10 +174,8 @@ class Right
 
     /**
      * Remove rightVolunteer.
-     *
-     * @param \App\Entity\RightVolunteer $rightVolunteer
      */
-    public function removeRightVolunteer(\App\Entity\RightVolunteer $rightVolunteer)
+    public function removeRightVolunteer(RightVolunteer $rightVolunteer)
     {
         $this->rightVolunteers->removeElement($rightVolunteer);
     }
@@ -190,6 +187,6 @@ class Right
      */
     public function onPrePersist()
     {
-        $this->created = new \DateTime('now');
+        $this->created = new DateTime('now');
     }
 }

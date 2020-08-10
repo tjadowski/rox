@@ -25,7 +25,9 @@ Boston, MA  02111-1307, USA.
      * @author Fake51
      */
 
-    /**
+use App\Doctrine\GroupType;
+
+/**
      * base class for all groups pages
      *
      * @package Apps
@@ -33,7 +35,6 @@ Boston, MA  02111-1307, USA.
      */
 class GroupsBasePage extends PageWithActiveSkin
 {
-
     /**
      * An array of messages that should be shown to the user
      * They are strings to be used in words->get
@@ -42,11 +43,23 @@ class GroupsBasePage extends PageWithActiveSkin
      */
     protected $_messages;
 
+    protected $crumbs = [
+        'forums' => 'CommunityDiscussions',
+        'groups/forums' => 'Groups',
+    ];
+
+    protected $teaserHeadline;
+
+    /** @var Group */
+    public $group;
+
+    /** @var Member */
+    public $member;
+
     /**
      * set a message for the member to see
      *
      * @param string $message - Message to set
-     * @access public
      */
     public function setMessage($message)
     {
@@ -61,7 +74,6 @@ class GroupsBasePage extends PageWithActiveSkin
     /**
      * get all set messages
      *
-     * @access public
      * @return array
      */
     public function getMessages()
@@ -74,6 +86,14 @@ class GroupsBasePage extends PageWithActiveSkin
         {
             return array();
         }
+    }
+
+    /**
+     * @param mixed $teaserHeadline
+     */
+    public function setTeaserHeadline($teaserHeadline): void
+    {
+        $this->teaserHeadline = $teaserHeadline;
     }
 
     protected function getColumnNames ()
@@ -92,7 +112,6 @@ class GroupsBasePage extends PageWithActiveSkin
      * returns the name of the group
      *
      * @todo return translated name
-     * @access protected
      * @return string
      */
     protected function getGroupTitle()
@@ -119,14 +138,59 @@ class GroupsBasePage extends PageWithActiveSkin
         }
     }
 
+    protected function isGroupOwner() {
+        if (!$this->group || !$this->member)
+        {
+            return false;
+        }
+        else
+        {
+            return $this->group->isGroupOwner($this->member);
+        }
+    }
+
+    protected function isGroupAdmin() {
+        if (!$this->group || !$this->member)
+        {
+            return false;
+        }
+        else
+        {
+            return $this->group->isGroupAdmin($this->member);
+        }
+    }
+
+    protected function canMemberAccess()
+    {
+        $canAccess =
+            ('Public' == $this->group->Type)
+            || $this->isGroupMember()
+            || ('NeedAcceptance' == $this->group->Type && $this->isGroupAdmin());
+
+        return $canAccess;
+    }
+
+    protected function breadcrumbs()
+    {
+        $words = $this->getWords();
+        $breadcrumbs = '<h5>';
+        foreach($this->crumbs as $key => $value)
+        {
+            $breadcrumbs .= '<a href="' . $key . '">' . $words->get($value) . '</a>';
+                $breadcrumbs .= " » ";
+        }
+        $breadcrumbs = substr($breadcrumbs, 0, -3);
+        $breadcrumbs .= '</h5>';
+        return $breadcrumbs;
+    }
 
     protected function teaserContent()
     {
-        // &gt; or &raquo; ?
-        $words = $this->getWords();
-        ?>
-        <h4><a href="forums"><?= $words->get('CommunityDiscussions');?></a> &raquo; <a href="groups/search"><?= $words->get('Groups');?></a> &raquo; <a href="groups/<?=$this->group->id ?>"><?= htmlspecialchars($this->group->Name, ENT_QUOTES) ?></a></h4>
-        <?php
+        echo $this->breadcrumbs();
+        if (!empty($this->teaserHeadline))
+        {
+            echo '<h3>' . $this->teaserHeadline . '</h3>';
+        }
     }
 
     protected function getTopmenuActiveItem()
@@ -137,6 +201,12 @@ class GroupsBasePage extends PageWithActiveSkin
     protected function getSubmenuItems()
     {
         $items = array();
+        $isAdmin = false;
+        $isOwner = false;
+        if ($this->group) {
+            $isAdmin = $this->group->isGroupAdmin($this->member);
+            $isOwner = $this->group->isGroupOwner($this->member);
+        }
 
         $layoutkit = $this->layoutkit;
         $words = $layoutkit->getWords();
@@ -153,11 +223,10 @@ class GroupsBasePage extends PageWithActiveSkin
                 $items[] = array('membersettings', 'group/'.$group_id.'/membersettings', $words->getSilent('GroupMembersettings'));
                 $items[] = array('relatedgroupsettings', 'group/'.$group_id.'/relatedgroupsettings', $words->getSilent('GroupRelatedGroups'));
             }
-            if ($this->member && $this->member->hasPrivilege('GroupsController', 'GroupSettings', $this->group))
+            if ($isOwner || ($isAdmin && GroupType::INVITE_ONLY !== $this->group->Type))
             {
                 $items[] = array('admin', "group/{$this->group->getPKValue()}/groupsettings", $words->getSilent('GroupGroupsettings'));
             }
-
         } else {
             $items[] = [ 'search', 'groups/search', $words->getSilent('GroupsSearchHeading') ];
             $items[] = [ 'rules', 'forums/rules', $words->getSilent('ForumRulesShort') ];
@@ -165,6 +234,38 @@ class GroupsBasePage extends PageWithActiveSkin
         }
 
         $items[] = [ 'subscription', 'forums/subscriptions', $this->words->getSilent('forum_YourSubscription') ];
+        $isForumModerator = false;
+        $isGroupAdministrator = false;
+        if ($this->member) {
+            $isForumModerator = $this->member->hasOldRight(['ForumModerator' => 10]);
+            $isGroupAdministrator = $this->member->hasOldRight(['Group' => 10]);
+        }
+
+        if ($isForumModerator) {
+            $forumsModel = new Forums();
+            $items[] = ['separator'];
+            $items[] = [
+                'allactivereports',
+                'forums/reporttomod/AllActiveReports',
+                'All pending reports <span class="badge badge-primary">'
+                . $forumsModel->countReportList(0, "('Open','OnDiscussion')")
+                . '</span>'
+            ];
+        }
+
+        if ($isGroupAdministrator) {
+            $items[] = ['separator'];
+            $items[] = [
+                'groupadmin',
+                '/admin/groups/approval',
+                'Group Administration'
+            ];
+            $items[] = [
+                'grouplogs',
+                'admin/logs/groups',
+                'Group Logs'
+            ];
+        }
 
         return $items;
     }
@@ -176,5 +277,8 @@ class GroupsBasePage extends PageWithActiveSkin
        return $stylesheets;
     }
 
+    protected function getSubmenuActiveItem() {
+        return '';
+    }
 }
 

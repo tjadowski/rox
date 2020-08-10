@@ -2,45 +2,41 @@
 {% extends 'base.html.twig' %}
 
 {% block content %}
-    <div class="row">
+    <div class="row no-gutters sticky-top py-1 bg-white messageheader mb-1 px-1 justify-content-between">
         {% set original = thread | last %}{% set request = original.Request %}
         {% set myself = app.user %}
         {% if original.Sender.Username == myself.Username %}{% set otherUser = original.Receiver %}{% else %}{% set otherUser = original.Sender %}{% endif %}
         {% if current.subject %}{% set currentSubject = current.Subject.Subject %}{% else %}{% set currentSubject = 'Conversation with ' ~ otherUser.Username %}{% endif %}
-        <div class="col-12 sticky-top py-1 bg-white d-inline-block messageheader mb-1">
-            <div class="pull-left">{{ macros.avatarstack(otherUser.Username, 50, false) }}</div>
-            <div class="pull-right">{{ macros.avatarstack(myself.Username, 50, true) }}</div>
+            <div>{{ macros.avatarstack(otherUser.Username, 50, false) }}</div>
             <div>
-                <h3 id="MessageSubject" class="p-3 text-truncate">{{ currentSubject }}</h3>
+                <h3 id="MessageSubject" class="px-3 pt-1 text-truncate">{{ currentSubject }}</h3>
             </div>
-        </div>
+        <div class="text-right">{{ macros.avatarstack(myself.Username, 50, true) }}</div>
     </div>
-    <div class="row">
-        <div class="col-12 mb-1">
-            <a class="btn btn-sm btn-primary float-right" href="{{ path('message_reply', { id: thread[0].id }) }}">{{ 'message.button.reply' | trans }}</a>
+    <div class="row no-gutters justify-content-between mb-1">
+        <div>{# Always add <div> so that the reply button is on the right hand side for larger displays #}
             {% if current.Sender != myself %}
                 {% if current.folder == constant('App\\Doctrine\\InFolderType::SPAM') %}
-                    <a class="btn btn-sm btn-primary mr-2 float-left" href="{{ path('message_mark_nospam', { id: thread[0].id }) }}">{{ 'marknospam' | trans }}</a>
+                    <a class="btn btn-sm btn-primary" href="{{ path('message_mark_nospam', { id: thread[0].id }) }}">{{ 'marknospam' | trans }}</a>
                 {% else %}
-                    <a class="btn btn-sm btn-primary mr-2 float-left" href="{{ path('message_mark_spam', { id: thread[0].id }) }}"><i class="fas fa-flag"></i> {{ 'markspam' | trans }}</a>
+                    <a class="btn btn-sm btn-primary" href="{{ path('message_mark_spam', { id: thread[0].id }) }}"><i class="fas fa-flag"></i> {{ 'markspam' | trans }}</a>
                 {% endif %}
             {%  endif %}
         </div>
+        <div><a class="btn btn-sm btn-primary ml-auto" href="{{ path('message_reply', { id: thread[0].id }) }}">{{ 'message.button.reply' | trans }}</a></div>
     </div>
 
     {% include 'message/thread.html.twig' %}
 
-    <div class="row">
-        <div class="col-12 mb-1">
-            <a class="btn btn-sm btn-primary float-right" href="{{ path('message_reply', { id: thread[0].id }) }}">{{ 'message.button.reply' | trans }}</a>
-            {% if current.Sender != myself %}
-                {% if current.folder == constant('App\\Doctrine\\InFolderType::SPAM') %}
-                    <a class="btn btn-sm btn-primary mr-2 float-left" href="{{ path('message_mark_nospam', { id: thread[0].id }) }}">{{ 'marknospam' | trans }}</a>
-                {% else %}
-                    <a class="btn btn-sm btn-primary mr-2 float-left" href="{{ path('message_mark_spam', { id: thread[0].id }) }}"><i class="fas fa-flag"></i> {{ 'markspam' | trans }}</a>
-                {% endif %}
-            {%  endif %}
-        </div>
+    <div class="row no-gutters justify-content-between mb-1">
+        {% if current.Sender != myself %}
+            {% if current.folder == constant('App\\Doctrine\\InFolderType::SPAM') %}
+                <div><a class="btn btn-sm btn-primary" href="{{ path('message_mark_nospam', { id: thread[0].id }) }}">{{ 'marknospam' | trans }}</a></div>
+            {% else %}
+                <div><a class="btn btn-sm btn-primary" href="{{ path('message_mark_spam', { id: thread[0].id }) }}"><i class="fas fa-flag"></i> {{ 'markspam' | trans }}</a></div>
+            {% endif %}
+        {%  endif %}
+        <div><a class="btn btn-sm btn-primary ml-auto" href="{{ path('message_reply', { id: thread[0].id }) }}">{{ 'message.button.reply' | trans }}</a></div>
     </div>
 
 {% endblock content %}

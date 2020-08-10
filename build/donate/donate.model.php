@@ -1,5 +1,6 @@
 <?php
 
+use App\Utilities\PaypalIPN as PaypalIPN;
 
 class DonateModel extends RoxModelBase
 {
@@ -18,7 +19,7 @@ class DonateModel extends RoxModelBase
         // check if donate.ini exists and get values
         list($requiredPerYear, $campaignStart) = $this->getCampaignValues();
         $requiredPerMonth = floor($requiredPerYear / 12);
-        
+
         // Calculate donations received for current year
         $result = $this->dao->query("
             SELECT
@@ -78,7 +79,7 @@ class DonateModel extends RoxModelBase
     /**
      * Get donations (max. 25, all if user has Treasurer rights)
      *
-     * @param recent Get only the results since the start of the current campaign
+     * @param bool recent Get only the results since the start of the current campaign
      * @return array List of donations as objects with string properties
      *
      * TODO: Add parameter for limit and do permission check elsewhere
@@ -129,14 +130,38 @@ class DonateModel extends RoxModelBase
         return $donations;
     }
 
+    public function processIpnNotificationFromPayPal()
+    {
+        $logStr = implode(' , ', $_POST);
+        MOD_log::get()->write($logStr, 'donation');
+
+        try {
+            $ipn = new PaypalIPN();// Use the sandbox endpoint during testing.
+            $ipn->useSandbox();
+            $verified = $ipn->verifyIPN();
+            if ($verified) {
+                MOD_log::get()->write("Verified", 'donation');
+                /*
+                 * Process IPN
+                 * A list of variables is available here:
+                 * https://developer.paypal.com/webapps/developer/docs/classic/ipn/integration-guide/IPNandPDTVariables/
+                 */
+            }// Reply with an empty 200 response to indicate to paypal the IPN was received correctly.
+            header("HTTP/1.1 200 OK");
+            PPHP::PExit();
+        } catch (Exception $e) {
+        }
+    }
+
     public function returnFromPayPal()
-    {    
-          global $_SYSHCVOL ; // this is needed to be able to read the value of paypal_authtoken !
-/*    
-//The donation returns an url as the following
-http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&amt=5.00&cc=EUR&cm=&item_number=&sig=hYUTlSOjBeJvNqfFqc%252fZbrBA4p6c%252fe6EErVp1w18eOBR96p6hzzenPysL%252bFVPZi8YEcONFovQmYn%252b6QF%252fBYoVhGMoaQJCxBQh%252bLAlC0TdgeScs1skk0%252bpY6SyoC%252fNCV1ou69zWRrhDrtsa4SUHibLD%252f1RwGg43iaZjPhB24I6lg%253d
-*/
-         // save the first immediate return values      
+    {
+         return;
+
+        /*
+        //The donation returns an url as the following
+        http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&amt=5.00&cc=EUR&cm=&item_number=&sig=hYUTlSOjBeJvNqfFqc%252fZbrBA4p6c%252fe6EErVp1w18eOBR96p6hzzenPysL%252bFVPZi8YEcONFovQmYn%252b6QF%252fBYoVhGMoaQJCxBQh%252bLAlC0TdgeScs1skk0%252bpY6SyoC%252fNCV1ou69zWRrhDrtsa4SUHibLD%252f1RwGg43iaZjPhB24I6lg%253d
+        */
+         // save the first immediate return values
          $tx=$tx_token = $_GET['tx'];
          $payment_amount=$_GET['amt'] ;
          $payment_currency=$_GET['cc'] ;
@@ -144,44 +169,24 @@ http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&a
          // read the post from PayPal system and add 'cmd'
          $req = 'cmd=_notify-synch';
 
-         $auth_token ="token is not set" ;
-         if (isset($_SYSHCVOL['paypal_authtoken'])) {
-            $auth_token =$_SYSHCVOL['paypal_authtoken'] ;
-         }
-          else {
-            MOD_log::get()->write("_SYSHCVOL[paypal_authtoken] is not set","donation") ;
-          }
-         $req .= "&tx=$tx_token&at=$auth_token";
 
-/*           
-         foreach ($_POST as $key => $value) {
-                 $value = trim(urlencode(stripslashes($value)));
-                 echo "_POST[", $key,"]=",$value,"<br />";
-        }
+         $req .= "&tx=$tx_token&at=".$_ENV['PaypalAuthToken'];
 
-         foreach ($_GET as $key => $value) {
-                 $value = trim(urlencode(stripslashes($value)));
-                 echo "_GET[", $key,"]=",$value,"<br />";
-        }
-*/
          // post back to PayPal system to validate
          $header = "POST /cgi-bin/webscr HTTP/1.0\r\n";
          $header .= "Content-Type: application/x-www-form-urlencoded\r\n";
          $header .= "Content-Length: " . strlen($req) . "\r\n\r\n";
-         $fp = fsockopen ('www.paypal.com', 80, $errno, $errstr, 30);
-         // If possible, securely post back to paypal using HTTPS
-         // Your PHP server will need to be SSL enabled
-         // $fp = fsockopen ('ssl://www.paypal.com', 443, $errno, $errstr, 30);
-             
+         $fp = fsockopen ('tls://www.paypal.com', 443, $errno, $errstr, 30);
+
 
          if (!$fp) {
             MOD_log::get()->write("Failed to connect to paypal for return value while checking confirmation on paypal","donation") ;
             $error = "A problem occured while checking confirmation with paypal";
             return $error;
-         } 
+         }
          else {
              fputs ($fp, $header . $req); // sending the query to paypal
-             // read the body data 
+             // read the body data
              $res = '';
              $headerdone = false;
              while (!feof($fp)) { // while result not received
@@ -207,9 +212,9 @@ http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&a
                     }
                     $keyarray[urldecode($key)] = urldecode($val);
                 }
-                
+
                 $ItsOK=true ;
-                
+
                 $txn_id = $keyarray['txn_id'];
 
                 if ($payment_amount!=$keyarray['mc_gross']) { // If amount differs we will not continue
@@ -220,20 +225,20 @@ http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&a
                    $ItsOK=false ;
                    MOD_log::get()->write("Problem for \$payment_currency expected=".$payment_currency." return par paypal confirmation=".$keyarray['mc_currency'],"donation") ;
                 }
-                
+
                 if ($keyarray['txn_id']!=$tx) { // If control code differs we will not continue
                    $ItsOK=false ;
                    MOD_log::get()->write("Problem for txn_id expected=".$tx." return par paypal confirmation=".$keyarray['txn_id'],"donation") ;
                 }
-                
-                if (!$ItsOK) { 
+
+                if (!$ItsOK) {
                     $error = "We detected a problem while checking the success of your donation on paypal";
                     return $error;
                 }
-                
+
                 $IdMember=0 ; $IdCountry=0 ; // This values will remain if the user was not logged
-                if ($this->_session->has( "IdMember" )) {
-                    $IdMember=$this->_session->get("IdMember") ;
+                if ($this->session->has( "IdMember" )) {
+                    $IdMember=$this->session->get("IdMember") ;
                     $query = "
                         SELECT
                             geonames.country AS IdCountry
@@ -247,7 +252,7 @@ http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&a
                         ";
                     $result = $this->dao->query($query);
                     $m = $result->fetch(PDB::FETCH_OBJ);
-                    $IdCountry=$m->IdCountry ; 
+                    $IdCountry=$m->IdCountry ;
                 }
 
                 $referencepaypal=  "ID #".$keyarray['txn_id']." payment_status=".$keyarray['payment_status'] ;
@@ -260,9 +265,9 @@ http://www.bewelcome.org/donate/?action=done&tx=0ME24142PE152304A&st=Completed&a
                 else {
                    $payment_currency=$keyarray['mc_currency'] ;
                 }
-                
+
                 $receiver_email=$keyarray['payer_email'] ;
-                
+
                 // now test if this donation was allready registrated
                 $query = '
 SELECT *
@@ -271,13 +276,13 @@ WHERE IdMember='.$IdMember.'
 AND referencepaypal LIKE "%'.$referencepaypal.'%"';
                 $result = $this->dao->query($query);
                 $rr = $result->fetch(PDB::FETCH_OBJ);
-        
+
                 if (isset($rr->id)) { // If a previous version was already existing, it means a double signup
                     MOD_log::get()->write("Same Donation Submited several times for ".$keyarray['mc_gross'].$payment_currency." by ".$keyarray['first_name']." ".$keyarray['last_name']."/".$receiver_email." status=".$keyarray['payment_status']." received=".$tx."]","Donation") ;
                     $error = "Your donation is registrated only once , not need to submit twice ;-)";
                     return $error;
                 }
-        
+
                 $memo="" ;
                 if (isset($keyarray['memo'])) {
                    $memo=$keyarray['memo'] ;

@@ -1,4 +1,4 @@
-import ClassicEditorBase from '@ckeditor/ckeditor5-editor-classic/src/classiceditor';
+import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor';
 import EssentialsPlugin from '@ckeditor/ckeditor5-essentials/src/essentials';
 import UploadAdapterPlugin from '@ckeditor/ckeditor5-adapter-ckfinder/src/uploadadapter';
 import AutoformatPlugin from '@ckeditor/ckeditor5-autoformat/src/autoformat';
@@ -7,7 +7,6 @@ import UnderlinePlugin from '@ckeditor/ckeditor5-basic-styles/src/underline';
 import ItalicPlugin from '@ckeditor/ckeditor5-basic-styles/src/italic';
 import BlockQuotePlugin from '@ckeditor/ckeditor5-block-quote/src/blockquote';
 import EasyImagePlugin from '@ckeditor/ckeditor5-easy-image/src/easyimage';
-import HeadingPlugin from '@ckeditor/ckeditor5-heading/src/heading';
 import ImagePlugin from '@ckeditor/ckeditor5-image/src/image';
 import ImageCaptionPlugin from '@ckeditor/ckeditor5-image/src/imagecaption';
 import ImageStylePlugin from '@ckeditor/ckeditor5-image/src/imagestyle';
@@ -17,10 +16,9 @@ import LinkPlugin from '@ckeditor/ckeditor5-link/src/link';
 import ListPlugin from '@ckeditor/ckeditor5-list/src/list';
 import ParagraphPlugin from '@ckeditor/ckeditor5-paragraph/src/paragraph';
 
-export default class RoxEditor extends ClassicEditorBase {}
-
-RoxEditor
-    .create( document.querySelector( '.editor'), {
+var allEditors = document.querySelectorAll('.editor');
+for (var i = 0; i < allEditors.length; ++i) {
+    ClassicEditor.create(allEditors[i], {
         // The plugins are now passed directly to .create().
         plugins: [
             EssentialsPlugin,
@@ -29,7 +27,6 @@ RoxEditor
             UnderlinePlugin,
             ItalicPlugin,
             BlockQuotePlugin,
-            HeadingPlugin,
             ImagePlugin,
             ImageCaptionPlugin,
             ImageStylePlugin,
@@ -41,33 +38,35 @@ RoxEditor
             ParagraphPlugin,
             UploadAdapterPlugin
         ],
-
+        ckfinder: {
+            uploadUrl:"/gallery/upload/image"
+        },
         // So is the rest of the default configuration.
         toolbar: [
-            'heading',
             'bold',
             'underline',
             'italic',
+            '|',
             'link',
             'bulletedList',
             'numberedList',
+            '|',
             'imageUpload',
             'blockQuote',
+            '|',
             'undo',
             'redo'
         ],
         image: {
             toolbar: [
-                'imageStyle:full',
-                'imageStyle:side',
-                '|',
                 'imageTextAlternative'
             ]
-        }
+        },
+        language: document.documentElement.lang
     } )
-    .then( editor => {
-        console.log( editor );
-    } )
-    .catch( error => {
-        console.error( error );
-    } );
+        .then( editor => {
+        } )
+        .catch( error => {
+            console.error( error );
+        } );
+}

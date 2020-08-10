@@ -15,18 +15,16 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, see <http://www.gnu.org/licenses/> or 
-write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, 
+along with this program; if not, see <http://www.gnu.org/licenses/> or
+write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 Boston, MA  02111-1307, USA.
 */
-    /** 
+    /**
+     * members base page
+     *
      * @author Micha
      * @author Globetrotter_tt
-     */
-
-    /** 
-     * members base page
-     * 
+     *
      * @package    Apps
      * @subpackage Members
      * @author     Micha
@@ -44,8 +42,8 @@ class MemberPage extends PageWithActiveSkin
     {
         return 'profile';
     }
-    
-    
+
+
     protected function getSubmenuItems()
     {
         $username = $this->member->Username;
@@ -54,6 +52,8 @@ class MemberPage extends PageWithActiveSkin
         $lang = $this->model->get_profile_language();
         $profile_language_code = $lang->ShortCode;
         $words = $this->getWords();
+        $rights = MOD_Right::get();
+
         $ww = $this->ww;
         $wwsilent = $this->wwsilent;
         $comments_count = $member->count_comments();
@@ -75,7 +75,7 @@ class MemberPage extends PageWithActiveSkin
         if ($logged_user && $logged_user->getPKValue() == $member->getPKValue()) {
             $linkMembersForumPosts = true;
         }
-        if (MOD_right::get()->HasRight('SafetyTeam') || MOD_right::get()->HasRight('Admin') || MOD_right::get()->HasRight('ForumModerator')) {
+        if ($rights->HasRight('SafetyTeam') || $rights->HasRight('Admin') || $rights->HasRight('ForumModerator')) {
             $linkMembersForumPosts = true;
         }
 
@@ -84,6 +84,7 @@ class MemberPage extends PageWithActiveSkin
             $tt=array(
                 array('editmyprofile', 'editmyprofile/' . $profile_language_code, '<i class="fa fa-fw fa-edit"></i> ' . $ww->EditMyProfile, 'editmyprofile'),
                 array('mypreferences', 'mypreferences', '<i class="fa fa-fw fa-cogs"></i> ' . $ww->MyPreferences, 'mypreferences'),
+                array('mydata', 'mydata', '<i class="fa fa-fw fa-database"></i> ' . $ww->MyData, 'mydata'),
                 array('mynotes', 'mynotes', '<i class="fa fa-fw fa-sticky-note"></i> ' . $words->get('MyNotes', '<span class="badge badge-primary pull-right">' . $mynotes_count . '</span>'), 'mynotes')
                 );
 
@@ -140,18 +141,21 @@ class MemberPage extends PageWithActiveSkin
                 $tt[] = array('forum', "forums/member/$username", '<i class="far fa-fw fa-comment"></i> ' . $viewForumPosts);
             }
         }
-        if (MOD_right::get()->HasRight('SafetyTeam') || MOD_right::get()->HasRight('Admin'))
+        if ($rights->HasRight('SafetyTeam') || $rights->HasRight('Admin'))
         {
             $tt[] = array('adminedit',"members/{$username}/adminedit", '<i class="fa fa-fw fa-bed invisible"></i> Admin: Edit Profile');
         }
-        if (MOD_right::get()->HasRight('Rights')) {
+        if ($rights->HasRight('Admin')) {
+            $tt[] = array('mydata', 'members/'.$username.'/data', '<i class="fa fa-fw fa-database"></i> ' . $ww->PersonalData, 'personaldata');
+        }
+        if ($rights->HasRight('Rights')) {
             array_push($tt,array('adminrights','admin/rights/list/members/'.$username, '<i class="fa fa-fw fa-bed invisible"></i> ' .  $ww->AdminRights) ) ;
         }
-        if (MOD_right::get()->HasRight('Flags')) {
+        if ($rights->HasRight('Flags')) {
             array_push($tt,array('adminflags', 'admin/flags/list/members/'. $username, '<i class="fa fa-fw fa-flag"></i> ' .  $ww->AdminFlags) ) ;
         }
-        if (MOD_right::get()->HasRight('Logs')) {
-            array_push($tt,array('admin','admin/logs?username='.$username,'<i class="fa fa-fw fa-bed invisible"></i> ' .  $ww->AdminLogs) ) ;
+        if ($rights->HasRight('Logs')) {
+            array_push($tt,array('admin','admin/logs?log[username='.$username.']','<i class="fa fa-fw fa-bed invisible"></i> ' .  $ww->AdminLogs) ) ;
         }
         return($tt) ;
     }
@@ -197,14 +201,14 @@ class MemberPage extends PageWithActiveSkin
             </a>
             <?php } ?>
             </div>
-        <?
+        <?php
             if ($this->myself) {
                 // TODO : change language code (en) and wordcode
                 ?>
         <div>
             <a href="editmyprofile" class="btn btn-info btn-block"><?= $words->get('profile.change.avatar'); ?></a>
         </div>
-                <? } ?>
+                <?php } ?>
 
         <div class="list-group mt-2">
             <?php

@@ -31,7 +31,7 @@ class PageWithRoxLayout extends PageWithHTML
         }
         return($this->meta_keyword) ;
     }
-    
+
     public function SetMetaKey($ss)
     {
         $words = $this->getWords();
@@ -45,13 +45,13 @@ class PageWithRoxLayout extends PageWithHTML
         }
         return($this->meta_robots) ;
     }
-    
-    public function SetMetaRobots($ss) 
+
+    public function SetMetaRobots($ss)
     {
             $this->meta_robots = $ss ;
     }
 
-    protected function getPage_meta_description() 
+    protected function getPage_meta_description()
     {
         $words = $this->getWords();
         if (empty($this->meta_description)) {
@@ -63,7 +63,7 @@ class PageWithRoxLayout extends PageWithHTML
     {
         $this->meta_description = $ss;
     }
-    
+
     protected function init()
     {
         $this->page_title = 'BeWelcome';
@@ -77,45 +77,6 @@ class PageWithRoxLayout extends PageWithHTML
         $stylesheet_patches = parent::getStylesheetPatches();
         //$stylesheet_patches[] = 'styles/css/minimal/patches/iehacks_3col_vlines.css';
         return $stylesheet_patches;
-    }
-
-    /**
-     * Return a list of items to show in the sub menu.  Each item is
-     * an array of keyword, url and translatable Word
-     */
-    protected function getTopmenuItems()
-    {
-        $items = array();
-
-        $user = new APP_User();
-        if ($user->isBWLoggedIn()) {
-            $username = $this->_session->has( 'Username' ) ? $this->_session->get('Username') : '';
-            $items[] = array('profile', 'members/'.$username, $username, true);
-        }
-        $items[] = array('getanswers', 'about', 'GetAnswers');
-        $items[] = array('findhosts', 'findmembers', 'FindHosts');
-        $items[] = array('explore', 'explore', 'Explore');
-        if ($user->isBWLoggedIn()) {
-            $items[] = array('messages', 'messages', 'Messages');
-        }
-        
-        return $items;
-    }
-
-    /*
-     * Override this method to define which of the top menu items is active, e.g.
-     * return 'forums';
-     */
-   protected function getTopmenuActiveItem() {
-        return 0;
-    }
-
-    protected function getSubmenuItems() {
-        return 0;
-    }
-
-    protected function getSubmenuActiveItem() {
-        return 0;
     }
 
     protected function body()
@@ -135,49 +96,9 @@ class PageWithRoxLayout extends PageWithHTML
     {
         $template = 'menu.html.twig';
 
-        $topmenu = $this->engine->render($template);
+        $topmenu = $this->environment->render($template);
 
         echo $topmenu;
-    }
-
-    /**
-     * A tiny wee quicksearch box
-     */
-    protected function quicksearch()
-    {
-        $words = $this->getWords();
-        $user = new APP_User();
-        $logged_in = $user->isBWLoggedIn('NeedMore,Pending');
-        if (!$logged_in) {
-            $request = PRequest::get()->request;
-            if (!isset($request[0])) {
-                $login_url = 'login';
-            } else switch ($request[0]) {
-                case 'login':
-                case 'main':
-                case 'start':
-                    $login_url = 'login';
-                    break;
-                default:
-                    $login_url = 'login/'.htmlspecialchars(implode('/', $request), ENT_QUOTES);
-            }
-        } else {
-            $username = $this->_session->has( 'Username' ) ? $this->_session->get('Username') : '';
-        }
-
-        if (class_exists('MOD_online')) {
-            $who_is_online_count = MOD_online::get()->howManyMembersOnline();
-        } else {
-            // echo 'MOD_online not active';
-            if ($this->_session->has( 'WhoIsOnlineCount' )) {
-                $who_is_online_count = $this->_session->get('WhoIsOnlineCount'); // MOD_whoisonline::get()->whoIsOnlineCount();
-            } else {
-                $who_is_online_count = 0;
-            }
-        }
-        PPostHandler::setCallback('quicksearch_callbackId', 'SearchmembersController', 'index');
-
-        require TEMPLATE_DIR . 'shared/roxpage/quicksearch.php';
     }
 
     protected function columnsArea($mid_column_name)
@@ -210,31 +131,8 @@ class PageWithRoxLayout extends PageWithHTML
      */
     protected function footer()
     {
-        echo $this->engine->render('footer.html.twig');
+        echo $this->environment->render('footer.html.twig');
         // require SCRIPT_BASE . "build/rox/templates/footer.php";
-    }
-
-    protected function leftoverTranslationLinks()
-    {
-        $remainingHeader = "";
-        $remainingBody = "";
-        $tr_buffer_body = $this->getWords()->flushBuffer();
-        if($this->_tr_buffer_header != '') {
-            $remainingHeader = '<div class="row">Remaining words in header: ' . $this->_tr_buffer_header . '</div>';
-        }
-        if($tr_buffer_body != '') {
-            $remainingBody = '<div class="row">Remaining words in body: ' . $tr_buffer_body . '</div>';
-        }
-        if (!empty($remainingHeader) || !empty($remainingBody)) {
-            echo $remainingHeader . $remainingBody;
-        }
-    }
-
-    protected function debugInfo()
-    {
-        if (PVars::get()->debug) {
-            require TEMPLATE_DIR . 'shared/roxpage/debuginfo.php';
-        }
     }
 
     protected function getColumnNames() {
@@ -254,12 +152,6 @@ class PageWithRoxLayout extends PageWithHTML
 
     protected function column_col2(){
 
-    }
-
-    protected function volunteerMenu()
-    {
-        $widget = $this->createWidget('VolunteermenuWidget');
-        $widget->render();
     }
 
     /**
@@ -308,15 +200,15 @@ class PageWithRoxLayout extends PageWithHTML
     private function getFlash($type, $remove = false) {
         $flashName = 'flash_' . $type;
         $flashMessage = "";
-        if ($this->_session->has( $flashName )) {
-            $flashMessage = $this->_session->get($flashName);
+        if ($this->getSession()->has( $flashName )) {
+            $flashMessage = $this->getSession()->get($flashName);
         }
-        $symfonyFlashes = $this->_session->getFlashBag()->get($type);
+        $symfonyFlashes = $this->getSession()->getFlashBag()->get($type);
         foreach($symfonyFlashes as $flash) {
             $flashMessage .= $flash . "<br>";
         }
         if ($remove) {
-            $this->_session->remove($flashName);
+            $this->getSession()->remove($flashName);
         }
         return $flashMessage;
     }

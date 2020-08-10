@@ -7,8 +7,11 @@ use App\Entity\Preference;
 use App\Form\CustomDataClass\SearchFormRequest;
 use App\Form\SearchFormType;
 use App\Pagerfanta\SearchAdapter;
+use App\Repository\MemberRepository;
 use Pagerfanta\Pagerfanta;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -19,15 +22,48 @@ class SearchController extends AbstractController
     /**
      * @Route("/search/members", name="search_members")
      *
-     * @param Request             $request
-     * @param TranslatorInterface $translator
+     * @return Response
+     */
+    public function searchMembers(Request $request)
+    {
+        $members = null;
+        $memberSearch = $this->createFormBuilder()
+            ->add('username', TextType::class, [
+                'label' => 'label.username',
+                'attr' => [
+                    'class' => 'member-autocomplete-start',
+                ],
+                'help' => 'help.username.auto.complete',
+            ])
+            ->add('search', SubmitType::class, [
+                'label' => 'label.search.username',
+            ])
+            ->getForm()
+        ;
+        $memberSearch->handleRequest($request);
+        if ($memberSearch->isSubmitted() && $memberSearch->isValid()) {
+            $data = $memberSearch->getData();
+            $username = $data['username'];
+            /** @var MemberRepository $memberRepository */
+            $memberRepository = $this->getDoctrine()->getRepository(Member::class);
+            $members = $memberRepository->findByProfileInfoStartsWith($username);
+        }
+
+        return $this->render('search/searchmembers.html.twig', [
+            'form' => $memberSearch->createView(),
+            'members' => $members,
+        ]);
+    }
+
+    /**
+     * @Route("/search/locations", name="search_locations")
      *
      * @return Response
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      * @SuppressWarnings(PHPMD.StaticAccess)
      */
-    public function searchAction(Request $request, TranslatorInterface $translator)
+    public function searchLocations(Request $request, TranslatorInterface $translator)
     {
         $pager = false;
         $results = false;
@@ -35,12 +71,16 @@ class SearchController extends AbstractController
         $member = $this->getUser();
 
         $preferenceRepository = $this->getDoctrine()->getRepository(Preference::class);
-        /** @var Preference $preference */
-        $preference = $preferenceRepository->findOneBy(['codename' => Preference::SHOW_MAP]);
-        $showMap = $member->getMemberPreferenceValue($preference);
+        /** @var Preference $showMapPreference */
+        $showMapPreference = $preferenceRepository->findOneBy(['codename' => Preference::SHOW_MAP]);
+        $showMap = $member->getMemberPreferenceValue($showMapPreference);
+        /** @var Preference $showOptionsPreference */
+        $showOptionsPreference = $preferenceRepository->findOneBy(['codename' => Preference::SHOW_SEARCH_OPTIONS]);
+        $showOptions = $member->getMemberPreferenceValue($showOptionsPreference);
 
         $searchFormRequest = SearchFormRequest::fromRequest($request, $this->getDoctrine()->getManager());
-        $searchFormRequest->showmap = ('Yes' === $showMap) ? true : false;
+        $searchFormRequest->show_map = ('Yes' === $showMap);
+        $searchFormRequest->show_options = ('Yes' === $showOptions);
 
         // There are three different forms that might end up on this page
         $formFactory = $this->get('form.factory');
@@ -76,14 +116,21 @@ class SearchController extends AbstractController
             if ($searchIsValid) {
                 $data = $search->getData();
             }
-            $memberPreference = $member->getMemberPreference($preference);
-            if ($data->showmap) {
-                $memberPreference->setValue('Yes');
+            $memberShowMapPreference = $member->getMemberPreference($showMapPreference);
+            if ($data->show_map) {
+                $memberShowMapPreference->setValue('Yes');
             } else {
-                $memberPreference->setValue('No');
+                $memberShowMapPreference->setValue('No');
+            }
+            $memberShowOptionsPreference = $member->getMemberPreference($showOptionsPreference);
+            if ($data->show_map) {
+                $memberShowOptionsPreference->setValue('Yes');
+            } else {
+                $memberShowOptionsPreference->setValue('No');
             }
             $em = $this->getDoctrine()->getManager();
-            $em->persist($memberPreference);
+            $em->persist($memberShowMapPreference);
+            $em->persist($memberShowOptionsPreference);
             $em->flush();
 
             $searchAdapter = new SearchAdapter(
@@ -104,16 +151,14 @@ class SearchController extends AbstractController
                 // only set data if the form wasn't submitted from search_members
                 $search->setData($data);
             }
-        } else {
-            if ($tinyIsSubmitted) {
-                // The user probably clicked on 'go' to fast on the landing page
-                // so set the entered location into the search location field and just show the form
-                $viewData = $tiny->getViewData();
-                $search->get('location')->submit($viewData->location);
-            }
+        } elseif ($tinyIsSubmitted) {
+            // The user probably clicked on 'go' to fast on the landing page
+            // so set the entered location into the search location field and just show the form
+            $viewData = $tiny->getViewData();
+            $search->get('location')->submit($viewData->location);
         }
 
-        return $this->render('search/searchmembers.html.twig', [
+        return $this->render('search/searchlocations.html.twig', [
             'form' => $search->createView(),
             'pager' => $pager,
             'routeName' => 'search_members_ajax',
@@ -129,9 +174,6 @@ class SearchController extends AbstractController
      *
      * @Route("/search/map", name="search_map")
      *
-     * @param Request             $request
-     * @param TranslatorInterface $translator
-     *
      * @return Response
      *
      * @SuppressWarnings(PHPMD.StaticAccess)
@@ -142,7 +184,9 @@ class SearchController extends AbstractController
         $results = false;
 
         $searchFormRequest = SearchFormRequest::fromRequest($request, $this->getDoctrine()->getManager());
-        $form = $this->createForm(SearchFormType::class, $searchFormRequest);
+
+        $formFactory = $this->get('form.factory');
+        $form = $formFactory->createNamed('map', SearchFormType::class, $searchFormRequest);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -163,7 +207,7 @@ class SearchController extends AbstractController
             $pager->setCurrentPage($data->page);
         }
 
-        return $this->render('search/searchmembers.html.twig', [
+        return $this->render('search/searchlocations.html.twig', [
             'form' => $form->createView(),
             'pager' => $pager,
             'routeName' => 'search_members_ajax',
@@ -176,9 +220,6 @@ class SearchController extends AbstractController
     /**
      * @Route("/search/members/ajax", name="search_members_ajax")
      *
-     * @param Request             $request
-     * @param TranslatorInterface $translator
-     *
      * @return Response
      *
      * @SuppressWarnings(PHPMD.StaticAccess)
@@ -188,7 +229,7 @@ class SearchController extends AbstractController
         if ('POST' !== $request->getMethod()) {
             // JavaScript doesn't work on client
             // redirect to search members
-            return $this->redirectToRoute('search_members', $request->query->all());
+            return $this->redirectToRoute('search_locations', $request->query->all());
         }
 
         $searchFormRequest = SearchFormRequest::fromRequest($request, $this->getDoctrine()->getManager());

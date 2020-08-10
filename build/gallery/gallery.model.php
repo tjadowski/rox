@@ -150,11 +150,11 @@ VALUES
      *
      * @access protected
      * @param MOD_images_Image $image The image to be deleted
-     **/ 
+     **/
     protected function deleteThisImage($image)
     {
         $filename = $image->file;
-        $userDir = new PDataDir('gallery/memebr'.$image->user_id_foreign);
+        $userDir = new PDataDir('gallery/member'.$image->user_id_foreign);
         $userDir->delFile($filename);
         $userDir->delFile('thumb'.$filename);
         $userDir->delFile('thumb1'.$filename);
@@ -337,7 +337,7 @@ LEFT JOIN `gallery_items_to_gallery` AS gi ON
     g.`id` = gi.`gallery_id_foreign`
 WHERE
     g.`id` = gi.`gallery_id_foreign`
-    AND 
+    AND
     g.`user_id_foreign` = ' . (int)$UserId . '
 ORDER BY `id` DESC';
         $s = $this->dao->query($query);
@@ -630,9 +630,9 @@ VALUES
 		            $original_x = min($size[0],PVars::getObj('images')->max_width);
 		            $original_y = min($size[1],PVars::getObj('images')->max_height);
 		            $tempDir = dirname($_FILES['gallery-file']['tmp_name'][$key]);
-		            $resizedName = md5($_FILES['gallery-file']['tmp_name'][$key]) . '_resized';
+		            $resizedName = md5($_FILES['gallery-file']['tmp_name'][$key]) . md5(date('now')) . '_resized';
 		            $img->createThumb($tempDir,$resizedName, $original_x, $original_y, true, 'ratio');
-		            $tempFile = $tempDir . '/' . $resizedName;
+		            $tempFile = $tempDir . '/' . $resizedName ;
 
 		            // create new image object from resized image
 		            $img = new MOD_images_Image($tempFile);
@@ -653,7 +653,7 @@ VALUES
 		            try {
 		                $insert->execute();
 		            } catch (PException $e) {
-		                error_log($e->__toString());
+		                error_log($e->getMessage());
 		            }
 		            if ($vars['galleryId']) {
 		                $this->dao->exec("INSERT INTO `gallery_items_to_gallery` SET `gallery_id_foreign` = '".$vars['galleryId']."', `item_id_foreign`= ".$itemId);

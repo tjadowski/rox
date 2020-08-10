@@ -6,6 +6,7 @@ use App\Entity\SubTrip;
 use App\Entity\Trip;
 use App\Form\TripType;
 use App\Model\TripModel;
+use DateTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,9 +18,7 @@ class TripController extends AbstractController
     /**
      * @Route("/trip", name="trip")
      *
-     * @param Request   $request
-     * @param TripModel $tripModel
-     * @param int       $items
+     * @param int $items
      *
      * @return Response
      */
@@ -61,8 +60,6 @@ class TripController extends AbstractController
      *
      * @Route("/trip/create", name="trip_create")
      *
-     * @param Request $request
-     *
      * @throws
      *
      * @return Response
@@ -77,7 +74,7 @@ class TripController extends AbstractController
 
         if ($createForm->isSubmitted() && $createForm->isValid()) {
             $trip
-                ->setCreatedAt(new \DateTime())
+                ->setCreatedAt(new DateTime())
                 ->setCreatedBy($this->getUser());
 
             $entityManager = $this->getDoctrine()->getManager();
@@ -99,8 +96,7 @@ class TripController extends AbstractController
      * @Route("/trip/{id}/update", name="trip_update",
      *     requirements={"id": "\d+"})
      *
-     * @param Request $request
-     * @param Trip    $trip    The trip to update
+     * @param Trip $trip The trip to update
      *
      * @throws AccessDeniedException
      *
@@ -119,7 +115,7 @@ class TripController extends AbstractController
 
         if ($updateForm->isSubmitted() && $updateForm->isValid()) {
             $trip
-                ->setUpdatedAt(new \DateTime());
+                ->setUpdatedAt(new DateTime());
 
             $entityManager = $this->getDoctrine()->getManager();
             $entityManager->persist($trip);

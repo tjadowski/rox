@@ -52,7 +52,7 @@ class CommunityNews
     private $createdAt;
 
     /**
-     * @var \App\Entity\Member
+     * @var Member
      *
      * @ORM\OneToOne(targetEntity="\App\Entity\Member")
      * @ORM\JoinColumn(name="created_by", referencedColumnName="id")
@@ -67,7 +67,7 @@ class CommunityNews
     private $updatedAt;
 
     /**
-     * @var \App\Entity\Member
+     * @var Member
      *
      * @ORM\OneToOne(targetEntity="\App\Entity\Member")
      * @ORM\JoinColumn(name="updated_by", referencedColumnName="id", nullable=true)
@@ -195,8 +195,6 @@ class CommunityNews
     /**
      * Set createdBy.
      *
-     * @param Member $createdBy
-     *
      * @return CommunityNews
      */
     public function setCreatedBy(Member $createdBy)
@@ -242,8 +240,6 @@ class CommunityNews
 
     /**
      * Set updatedBy.
-     *
-     * @param Member $updatedBy
      *
      * @return CommunityNews
      */
